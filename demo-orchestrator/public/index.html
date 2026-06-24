@@ -3,461 +3,630 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Parcel21 — pay anyone, no one in the middle</title>
-    <meta name="description" content="A real $1 payment between a buyer and a seller, handed off over encrypted Nostr instead of a marketplace or bank — settled on Bitcoin, with public proof you can check yourself." />
+    <title>Parcel21 — a private, secure marketplace</title>
+    <meta name="description" content="Buy and sell cameras, furniture, watches and the well-made rest, with payments that settle privately on Bitcoin — straight to the seller, with no platform that can watch, take a cut, or block it." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,18..72,400;0,18..72,500;1,18..72,400&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --bg: #0a0c0f; --panel: #13171c; --panel2: #1a2027; --line: #29323c; --line2: #36424f;
-        --fg: #eef2f6; --mut: #8e9aa7; --mut2: #6b7682; --acc: #f7931a; --acc-dim: #5a4216;
-        --grn: #34c66a; --red: #ef5b5b; --blu: #5ea0f2; --vio: #9b8cff;
-        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --bg: #FBFAF6; --ink: #1C1B18; --acc: #C8501E; --mut: #76726A; --mut2: #9c988e; --body: #46443f;
+        --line: rgba(28,27,24,0.08); --line2: rgba(28,27,24,0.14); --panel: #F4F2EC; --card: #fff;
+        --grn: #2f9e5b; --blu: #2f6fd6; --vio: #6d5bd0;
+        --sans: 'Hanken Grotesk', system-ui, sans-serif; --serif: 'Newsreader', Georgia, serif;
       }
-      * { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
-      body {
-        margin: 0; color: var(--fg); font-family: var(--sans); font-size: 15.5px; line-height: 1.6;
-        background:
-          radial-gradient(900px 520px at 50% -8%, rgba(247,147,26,0.10), transparent 60%),
-          radial-gradient(700px 500px at 100% 2%, rgba(94,160,242,0.06), transparent 55%),
-          var(--bg);
-        min-height: 100vh;
-      }
-      a { color: var(--blu); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px 64px; }
-
-      .top { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 6px; }
-      .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 18px; }
-      .brand .o { color: var(--acc); }
-      .top .links { display: flex; gap: 16px; font-size: 13.5px; }
-      .top .links a { color: var(--mut); }
-      .top .links a:hover { color: var(--fg); }
-
-      .hero { padding: 26px 0 4px; }
-      h1 { font-size: clamp(27px, 5vw, 40px); line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 14px; font-weight: 800; }
-      h1 .grad { background: linear-gradient(90deg, var(--acc), #ffba5c); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .lede { font-size: clamp(15px, 2.3vw, 17px); color: var(--mut); margin: 0; max-width: 600px; }
-      .lede b { color: var(--fg); font-weight: 600; }
-      .livechip { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px; font-size: 12.5px; color: var(--mut); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; }
-      .livechip b { color: var(--fg); font-weight: 600; }
-      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mut2); flex: 0 0 auto; }
-      .dot.ok { background: var(--grn); box-shadow: 0 0 0 3px rgba(52,198,106,0.18); }
-      .dot.warn { background: var(--acc); box-shadow: 0 0 0 3px rgba(247,147,26,0.18); }
-      .dot.bad { background: var(--red); }
-
-      /* marketplace listing card */
-      .listing { display: flex; align-items: center; gap: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-top: 22px; position: relative; overflow: hidden; }
-      .thumb { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 12px; background: linear-gradient(150deg, #20262e, #161b21); border: 1px solid var(--line2); display: grid; place-items: center; font-size: 30px; }
-      .li-body { flex: 1; min-width: 0; }
-      .li-item { font-size: 16.5px; font-weight: 650; }
-      .li-route { color: var(--mut); font-size: 13px; margin-top: 3px; }
-      .li-route b { color: var(--fg); font-weight: 600; }
-      .li-price { font-size: 22px; font-weight: 750; color: var(--fg); flex: 0 0 auto; }
-      .sold { position: absolute; top: 12px; right: -34px; transform: rotate(34deg); background: var(--grn); color: #06210f; font-weight: 800; font-size: 11px; letter-spacing: 0.08em; padding: 3px 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
-      .li-line { color: var(--mut); font-size: 14.5px; margin: 14px 0 0; }
-      .li-line b { color: var(--fg); font-weight: 600; }
-
-      button.run {
-        appearance: none; border: 0; border-radius: 13px; padding: 16px 22px; width: 100%; margin-top: 16px;
-        background: linear-gradient(180deg, #ffb24d, var(--acc)); color: #1a1205; font-size: 16.5px; font-weight: 750;
-        cursor: pointer; transition: filter .15s, transform .04s, box-shadow .15s; box-shadow: 0 8px 30px rgba(247,147,26,0.22);
-      }
-      button.run:hover { filter: brightness(1.05); }
-      button.run:active { transform: translateY(1px); }
-      button.run:disabled { background: #232931; color: var(--mut2); cursor: not-allowed; box-shadow: none; }
-      .ctasub { color: var(--mut2); font-size: 12px; text-align: center; margin-top: 10px; }
-      .ctasub a { color: var(--mut); }
-      .warn-box { background: #221a0c; border: 1px solid #4a3814; border-radius: 12px; padding: 13px 15px; margin-top: 14px; font-size: 13.5px; color: #e7d6b6; }
-      .warn-box code { font-family: var(--mono); font-size: 12px; color: var(--acc); word-break: break-all; }
-      .err-msg { color: var(--red); font-size: 13.5px; margin-top: 12px; }
-
-      .sec-h { margin: 36px 0 14px; }
-      .sec-h h2 { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mut); margin: 0; font-weight: 700; }
-      .sec-h p { color: var(--mut); font-size: 14px; margin: 7px 0 0; max-width: 600px; }
-
-      /* big human beats */
-      .beats { display: grid; gap: 12px; }
-      .beat { display: flex; align-items: center; gap: 15px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; opacity: 0.5; transition: opacity .3s, border-color .3s; }
-      .beat.run, .beat.ok, .beat.error { opacity: 1; }
-      .beat.run { border-color: var(--acc-dim); }
-      .beat.ok { border-color: rgba(52,198,106,0.32); }
-      .beat .bic { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 50%; border: 2px solid #313b45; display: grid; place-items: center; font-size: 16px; color: transparent; }
-      .beat.run .bic { border-color: var(--acc); border-right-color: transparent; animation: spin .8s linear infinite; }
-      .beat.ok .bic { background: var(--grn); border-color: var(--grn); color: #06210f; }
-      .beat.error .bic { background: var(--red); border-color: var(--red); color: #2a0a0a; }
-      .beat .blab { font-size: 15.5px; font-weight: 600; }
-      .beat .bsub { color: var(--mut); font-size: 12.5px; margin-top: 1px; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+      ::selection { background: var(--acc); color: #fff; }
+      a { color: inherit; text-decoration: none; }
+      button { font-family: var(--sans); letter-spacing: -0.01em; }
+      input::placeholder { color: var(--mut2); }
+      .p21-scroll::-webkit-scrollbar { width: 0; height: 0; }
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes drawerIn { from { transform: translateX(100%); } to { transform: none; } }
+      @keyframes toastIn { from { opacity: 0; transform: translateY(16px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } }
       @keyframes spin { to { transform: rotate(360deg); } }
 
-      details.hood, details.dev { margin-top: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 13px; }
-      details summary { cursor: pointer; list-style: none; padding: 13px 16px; font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 10px; color: var(--mut); }
-      details summary:hover { color: var(--fg); }
-      details summary::-webkit-details-marker { display: none; }
-      details summary .chev { color: var(--mut2); transition: transform .2s; margin-left: auto; }
-      details[open] summary .chev { transform: rotate(90deg); }
-      .hood-body, .dev-body { padding: 4px 16px 16px; border-top: 1px solid var(--line); }
-      .steps { list-style: none; margin: 8px 0 0; padding: 0; }
-      .steps li { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
-      .steps li .ic { width: 19px; height: 19px; flex: 0 0 19px; border-radius: 50%; border: 2px solid #313b45; display: grid; place-items: center; font-size: 11px; color: transparent; }
-      .steps li.run .ic { border-color: var(--acc); border-right-color: transparent; animation: spin .8s linear infinite; }
-      .steps li.ok .ic { background: var(--grn); border-color: var(--grn); color: #06210f; }
-      .steps li.err .ic { background: var(--red); border-color: var(--red); color: #2a0a0a; }
-      .steps li .lab { color: var(--mut); font-size: 13.5px; }
-      .steps li.ok .lab, .steps li.run .lab { color: var(--fg); }
-      .steps li .meta { color: var(--mut2); font-size: 11px; font-family: var(--mono); margin-left: auto; }
+      .wrap { max-width: 1320px; margin: 0 auto; padding: 0 44px; }
+      .serif { font-family: var(--serif); font-weight: 400; }
+      .ital { font-style: italic; }
 
-      /* the flow diagram (under the hood) */
-      .flow svg { width: 100%; height: auto; display: block; margin-top: 6px; }
+      header.site { position: sticky; top: 0; z-index: 40; background: rgba(251,250,246,0.86); backdrop-filter: saturate(140%) blur(14px); border-bottom: 1px solid var(--line); }
+      header.site .bar { display: flex; align-items: center; gap: 20px; padding-top: 16px; padding-bottom: 16px; }
+      .logo { display: flex; align-items: baseline; gap: 1px; background: none; border: 0; cursor: pointer; flex-shrink: 0; }
+      .logo b { font-weight: 700; font-size: 23px; letter-spacing: -0.04em; }
+      .logo .o { color: var(--acc); }
+      .search { flex: 1; min-width: 0; max-width: 540px; position: relative; display: flex; align-items: center; }
+      .search svg { position: absolute; left: 15px; pointer-events: none; }
+      .search input { width: 100%; font-family: var(--sans); font-size: 15px; color: var(--ink); background: #fff; border: 1px solid var(--line2); border-radius: 11px; padding: 12px 16px 12px 42px; outline: none; letter-spacing: -0.01em; }
+      .search input:focus { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(200,80,30,0.1); }
+      nav.head { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+      .btn-sell { display: flex; align-items: center; gap: 7px; background: var(--ink); color: var(--bg); border: 0; cursor: pointer; font-weight: 600; font-size: 14px; padding: 11px 17px; border-radius: 10px; }
+      .btn-sell:hover { background: #000; }
+      .ic-btn { position: relative; background: none; border: 0; cursor: pointer; padding: 9px; border-radius: 10px; color: var(--ink); display: flex; }
+      .ic-btn:hover { background: rgba(28,27,24,0.05); }
+      .ic-badge { position: absolute; top: 1px; right: 1px; background: var(--acc); color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+      .avatar { width: 34px; height: 34px; border-radius: 50%; background: #E1DDD6; display: grid; place-items: center; font-weight: 600; font-size: 13px; color: var(--mut); margin-left: 4px; border: 1px solid var(--line); }
 
-      /* outcome + reveal */
-      .outcome { display: flex; align-items: center; gap: 13px; background: linear-gradient(180deg, rgba(52,198,106,0.10), rgba(52,198,106,0.03)); border: 1px solid rgba(52,198,106,0.3); border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; }
-      .outcome .check { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; background: var(--grn); color: #06210f; display: grid; place-items: center; font-weight: 800; }
-      .outcome .t { font-size: 16.5px; font-weight: 650; }
-      .outcome .s { color: var(--mut); font-size: 12.8px; }
-      .ex-tag { margin-left: auto; font-size: 11px; color: var(--mut2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; flex: 0 0 auto; }
+      /* trust strip — the positioning */
+      .trust { background: var(--ink); color: #efe9df; }
+      .trust .wrap { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 9px 44px; font-size: 12.5px; flex-wrap: wrap; }
+      .trust .t { display: inline-flex; align-items: center; gap: 7px; color: #cfc8bb; }
+      .trust .t b { color: #fff; font-weight: 600; }
+      .trust .t svg { color: var(--acc); }
+      .trust .pow { color: #8d8678; }
 
+      main { animation: fade 0.3s ease both; }
+
+      /* hero */
+      .hero { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; padding: 60px 0 52px; }
+      .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--acc); margin-bottom: 20px; }
+      .eyebrow span { width: 22px; height: 1.5px; background: var(--acc); }
+      .hero h1 { font-family: var(--serif); font-size: 60px; line-height: 1.02; letter-spacing: -0.02em; margin-bottom: 20px; text-wrap: balance; }
+      .hero p { font-size: 17px; line-height: 1.6; color: var(--mut); max-width: 450px; margin-bottom: 28px; }
+      .hero .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+      .btn-dark { background: var(--ink); color: var(--bg); border: 0; cursor: pointer; font-weight: 600; font-size: 15px; padding: 14px 24px; border-radius: 11px; }
+      .btn-dark:hover { background: #000; }
+      .btn-ghost { background: none; color: var(--ink); border: 1px solid var(--line2); cursor: pointer; font-weight: 600; font-size: 15px; padding: 14px 24px; border-radius: 11px; }
+      .btn-ghost:hover { border-color: var(--ink); }
+      .feat { position: relative; border: 0; cursor: pointer; padding: 0; text-align: left; border-radius: 18px; overflow: hidden; aspect-ratio: 4/3.4; display: block; width: 100%; transition: transform .4s cubic-bezier(.2,.7,.2,1); }
+      .feat:hover { transform: translateY(-3px); }
+      .feat .sheen { position: absolute; inset: 0; background: radial-gradient(120% 90% at 72% 22%, rgba(255,255,255,0.6), transparent 60%); }
+      .feat .cat { position: absolute; top: 18px; left: 18px; z-index: 2; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #46443f; background: rgba(255,255,255,0.86); padding: 5px 10px; border-radius: 8px; backdrop-filter: blur(6px); }
+      .feat .obj { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--serif); font-style: italic; font-size: 34px; color: rgba(28,27,24,0.22); }
+      .feat .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px; background: linear-gradient(to top, rgba(28,27,24,0.5), transparent); color: #fff; }
+      .feat .cap .k { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; margin-bottom: 4px; }
+      .feat .cap .n { font-family: var(--serif); font-size: 21px; line-height: 1.2; }
+      .feat .cap .pr { font-weight: 600; font-size: 16px; margin-top: 6px; }
+
+      /* category bar */
+      .catbar { position: sticky; top: 67px; z-index: 30; background: rgba(251,250,246,0.92); backdrop-filter: blur(8px); margin: 0 -44px; padding: 13px 44px; border-bottom: 1px solid rgba(28,27,24,0.07); }
+      .catbar .row { display: flex; gap: 8px; overflow-x: auto; }
+      .chip { flex-shrink: 0; cursor: pointer; font-weight: 500; font-size: 14px; padding: 9px 16px; border-radius: 999px; white-space: nowrap; background: #fff; color: var(--body); border: 1px solid var(--line2); }
+      .chip:hover { border-color: var(--ink); color: var(--ink); }
+      .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); font-weight: 600; }
+
+      .feedhead { display: flex; align-items: flex-end; justify-content: space-between; padding: 34px 0 22px; gap: 20px; flex-wrap: wrap; }
+      .feedhead h2 { font-family: var(--serif); font-size: 32px; letter-spacing: -0.01em; }
+      .feedhead .sub { font-size: 14px; color: var(--mut); margin-top: 4px; }
+      .sortwrap { display: flex; align-items: center; gap: 9px; position: relative; }
+      .sortwrap span { font-size: 14px; color: var(--mut); }
+      .sortwrap select { appearance: none; -webkit-appearance: none; font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--ink); background: #fff; border: 1px solid var(--line2); border-radius: 10px; padding: 10px 34px 10px 14px; cursor: pointer; outline: none; }
+      .sortwrap svg { position: absolute; right: 12px; pointer-events: none; }
+
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 30px 26px; }
+      .card { cursor: pointer; }
+      .card .ph { position: relative; aspect-ratio: 4/5; border-radius: 14px; overflow: hidden; }
+      .card .sheen { position: absolute; inset: 0; background: radial-gradient(115% 85% at 70% 22%, rgba(255,255,255,0.55), transparent 58%); }
+      .card .cat { position: absolute; top: 12px; left: 12px; z-index: 2; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #46443f; background: rgba(255,255,255,0.86); padding: 4px 8px; border-radius: 7px; backdrop-filter: blur(6px); }
+      .card .obj { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--serif); font-style: italic; font-size: 26px; color: rgba(28,27,24,0.2); }
+      .phimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+      .heart { position: absolute; top: 11px; right: 11px; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); border: 0; cursor: pointer; display: grid; place-items: center; }
+      .heart:hover { background: #fff; transform: scale(1.08); }
+      .card .meta { padding: 13px 2px 0; }
+      .card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+      .card .nm { font-family: var(--serif); font-size: 18px; line-height: 1.25; }
+      .card .pr { font-weight: 700; font-size: 16px; white-space: nowrap; }
+      .card .cond { display: flex; align-items: center; gap: 7px; margin-top: 6px; font-size: 13px; color: var(--mut); }
+      .card .cond .d { opacity: 0.4; }
+      .card .ship { font-size: 13px; color: var(--mut2); margin-top: 2px; }
+
+      footer.site { border-top: 1px solid var(--line); background: var(--panel); margin-top: 40px; }
+      footer.site .cols { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 32px; padding: 52px 44px 40px; max-width: 1320px; margin: 0 auto; }
+      footer .blurb { font-size: 14px; line-height: 1.6; color: var(--mut); max-width: 280px; margin-top: 12px; }
+      footer .ch { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mut2); margin-bottom: 15px; }
+      footer .lk { display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--body); }
+      footer .lk a:hover { color: var(--ink); }
+      footer .legal { max-width: 1320px; margin: 0 auto; padding: 18px 44px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 13px; color: var(--mut2); }
+
+      /* product detail */
+      .back { display: inline-flex; align-items: center; gap: 8px; background: none; border: 0; cursor: pointer; font-weight: 500; font-size: 14px; color: var(--mut); padding: 8px 0; margin-bottom: 16px; }
+      .back:hover { color: var(--ink); }
+      .pdp { max-width: 1180px; margin: 0 auto; padding: 24px 44px 80px; }
+      .pdp .split { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 50px; align-items: start; }
+      .gallery { position: sticky; top: 100px; }
+      .gallery .main { position: relative; aspect-ratio: 1/1; border-radius: 18px; overflow: hidden; }
+      .gallery .obj { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--serif); font-style: italic; font-size: 46px; color: rgba(28,27,24,0.2); }
+      .gallery .thumbs { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 12px; }
+      .gallery .thumb { aspect-ratio: 1/1; border-radius: 11px; border: 1px solid var(--line); position: relative; overflow: hidden; }
+      .pinfo .tags { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+      .pinfo .cat { font-size: 12px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--acc); }
+      .pinfo .cond { font-size: 12px; font-weight: 600; color: var(--body); background: rgba(28,27,24,0.06); padding: 4px 10px; border-radius: 999px; }
+      .pinfo h1 { font-family: var(--serif); font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; margin-bottom: 14px; text-wrap: balance; }
+      .pinfo .price { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+      .pinfo .price b { font-weight: 700; font-size: 32px; }
+      .pinfo .price .s { font-size: 14px; color: var(--mut); }
+      .pinfo .desc { font-size: 16px; line-height: 1.65; color: var(--body); margin-bottom: 26px; max-width: 480px; }
+      .pinfo .acts { display: flex; gap: 11px; margin-bottom: 13px; }
+      .btn-buy { flex: 1; background: var(--acc); color: #fff; border: 0; cursor: pointer; font-weight: 600; font-size: 16px; padding: 16px; border-radius: 12px; }
+      .btn-buy:hover { filter: brightness(0.93); }
+      .btn-cart { flex: 1; background: var(--ink); color: var(--bg); border: 0; cursor: pointer; font-weight: 600; font-size: 16px; padding: 16px; border-radius: 12px; }
+      .btn-cart:hover { background: #000; }
+      .btn-fav { width: 54px; flex-shrink: 0; background: #fff; border: 1px solid var(--line2); cursor: pointer; border-radius: 12px; display: grid; place-items: center; }
+      .btn-fav:hover { border-color: var(--ink); }
+      .btn-offer { width: 100%; background: none; color: var(--ink); border: 1px solid var(--line2); cursor: pointer; font-weight: 600; font-size: 15px; padding: 14px; border-radius: 12px; margin-bottom: 24px; }
+      .btn-offer:hover { border-color: var(--ink); }
+      .seller { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--line2); border-radius: 14px; margin-bottom: 18px; }
+      .seller .av { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 15px; color: var(--body); flex-shrink: 0; }
+      .seller .nm { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 15px; }
+      .seller .meta { font-size: 13px; color: var(--mut); margin-top: 2px; }
+      .seller .store { background: none; border: 1px solid var(--line2); cursor: pointer; font-weight: 600; font-size: 13px; padding: 9px 15px; border-radius: 9px; color: var(--ink); }
+      .seller .store:hover { border-color: var(--ink); }
+      .trustrow { display: flex; flex-direction: column; gap: 11px; }
+      .trustrow .r { display: flex; align-items: flex-start; gap: 11px; font-size: 14px; color: var(--body); }
+      .trustrow .r svg { color: var(--acc); flex-shrink: 0; margin-top: 1px; }
+      .trustrow .r b { font-weight: 600; color: var(--ink); }
+      .similar { margin-top: 64px; }
+      .similar h2 { font-family: var(--serif); font-size: 26px; margin-bottom: 22px; }
+      .simgrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 26px; }
+
+      /* checkout + receipt */
+      .checkout { max-width: 1040px; margin: 0 auto; padding: 24px 44px 80px; }
+      .checkout .split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+      .summary { background: var(--card); border: 1px solid var(--line2); border-radius: 16px; padding: 22px; }
+      .summary h3 { font-family: var(--serif); font-size: 22px; margin-bottom: 16px; }
+      .sitem { display: flex; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+      .sitem .ph { width: 66px; height: 80px; border-radius: 10px; flex-shrink: 0; position: relative; overflow: hidden; }
+      .sitem .obj { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--serif); font-style: italic; font-size: 14px; color: rgba(28,27,24,0.22); }
+      .sitem .nm { font-family: var(--serif); font-size: 17px; line-height: 1.25; }
+      .sitem .by { font-size: 13px; color: var(--mut); margin-top: 3px; }
+      .srow { display: flex; justify-content: space-between; font-size: 14px; color: var(--mut); margin-bottom: 8px; }
+      .srow.total { font-size: 17px; color: var(--ink); font-weight: 700; border-top: 1px solid var(--line); padding-top: 13px; margin-top: 5px; }
+      .pay { background: var(--card); border: 1px solid var(--line2); border-radius: 16px; padding: 22px; }
+      .pay .lede { font-size: 13.5px; color: var(--body); line-height: 1.6; margin: 6px 0 16px; }
+      .pay .lede b { color: var(--ink); font-weight: 600; }
+      .payways { display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px; }
+      .payway { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px; font-size: 13.5px; color: var(--mut2); background: #fbfaf7; }
+      .payway.on { border-color: var(--acc); background: rgba(200,80,30,0.05); color: var(--ink); box-shadow: 0 0 0 3px rgba(200,80,30,0.07); }
+      .payway .ico { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; background: #fff; border: 1px solid var(--line); }
+      .payway.on .ico { background: var(--acc); border-color: var(--acc); color: #fff; }
+      .payway .t b { color: var(--ink); font-weight: 600; display: block; font-size: 14px; }
+      .payway.on .t b { color: var(--ink); }
+      .payway .t span { font-size: 12px; }
+      .payway .pick { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--acc); }
+      .btn-pay { width: 100%; background: var(--acc); color: #fff; border: 0; cursor: pointer; font-weight: 700; font-size: 16px; padding: 16px; border-radius: 12px; }
+      .btn-pay:hover { filter: brightness(0.93); }
+      .btn-pay:disabled { background: #d8d2c6; color: #fff; cursor: default; filter: none; }
+      .demo-note { font-size: 11.5px; color: var(--mut2); text-align: center; margin-top: 11px; line-height: 1.5; }
+
+      .beats { display: grid; gap: 10px; margin-top: 4px; }
+      .beat { display: flex; align-items: center; gap: 13px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; opacity: 0.45; transition: opacity .3s, border-color .3s; }
+      .beat.run, .beat.ok, .beat.error { opacity: 1; }
+      .beat.run { border-color: rgba(200,80,30,0.4); }
+      .beat.ok { border-color: rgba(47,158,91,0.34); }
+      .beat .bic { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; border: 2px solid #d8d2c6; display: grid; place-items: center; font-size: 14px; color: transparent; }
+      .beat.run .bic { border-color: var(--acc); border-right-color: transparent; animation: spin .8s linear infinite; }
+      .beat.ok .bic { background: var(--grn); border-color: var(--grn); color: #fff; }
+      .beat.error .bic { background: #d23; border-color: #d23; color: #fff; }
+      .beat .bl { font-weight: 600; font-size: 14.5px; }
+      .beat .bs { font-size: 12px; color: var(--mut); margin-top: 1px; }
+
+      .receipt { max-width: 720px; margin: 0 auto; padding: 40px 44px 80px; animation: fadeUp 0.4s ease both; }
+      .rhead { text-align: center; margin-bottom: 30px; }
+      .rhead .ck { width: 56px; height: 56px; border-radius: 50%; background: var(--grn); color: #fff; display: grid; place-items: center; margin: 0 auto 18px; font-size: 28px; }
+      .rhead h1 { font-family: var(--serif); font-size: 34px; line-height: 1.1; margin-bottom: 8px; }
+      .rhead p { font-size: 15.5px; color: var(--mut); max-width: 440px; margin: 0 auto; }
+      .reveal-h { font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mut); margin: 28px 0 6px; }
+      .reveal-sub { font-size: 14px; color: var(--mut); margin-bottom: 16px; }
+      .reveal-sub b { color: var(--ink); font-weight: 600; }
       .arts { display: grid; gap: 12px; }
-      .art { background: var(--panel2); border: 1px solid var(--line); border-radius: 13px; padding: 16px; }
-      .art .ah { display: flex; align-items: center; gap: 9px; margin-bottom: 4px; flex-wrap: wrap; }
-      .art h3 { margin: 0; font-size: 15px; font-weight: 650; }
-      .art .badge { font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; }
-      .badge.chain { color: var(--acc); background: rgba(247,147,26,0.12); }
-      .badge.enc { color: var(--vio); background: rgba(155,140,255,0.13); }
-      .badge.priv { color: var(--blu); background: rgba(94,160,242,0.12); }
-      .art .proves { color: var(--mut); font-size: 13px; margin: 0 0 11px; }
-      .art .proves b { color: var(--fg); font-weight: 600; }
-      .val { font-family: var(--mono); font-size: 12.5px; background: #0c0f13; border: 1px solid var(--line); border-radius: 9px;
-             padding: 9px 11px; display: flex; align-items: center; gap: 10px; justify-content: space-between; word-break: break-all; }
+      .art { background: var(--card); border: 1px solid var(--line2); border-radius: 14px; padding: 16px; }
+      .art .ah { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; flex-wrap: wrap; }
+      .art h3 { font-size: 15px; font-weight: 650; }
+      .art .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; }
+      .badge.chain { color: var(--acc); background: rgba(200,80,30,0.1); }
+      .badge.enc { color: var(--vio); background: rgba(109,91,208,0.1); }
+      .badge.priv { color: var(--blu); background: rgba(47,111,214,0.1); }
+      .art .pv { font-size: 13px; color: var(--body); margin-bottom: 11px; line-height: 1.55; }
+      .art .pv b { color: var(--ink); font-weight: 600; }
+      .val { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: #faf8f3; border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; justify-content: space-between; word-break: break-all; }
       .val + .val { margin-top: 7px; }
       .val a { color: var(--blu); }
-      .copy { cursor: pointer; color: var(--mut2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; font-size: 11px; flex: 0 0 auto; user-select: none; }
-      .copy:hover { color: var(--fg); border-color: var(--line2); }
-      .confbadge { font-size: 11.5px; font-family: var(--mono); padding: 2px 9px; border-radius: 999px; flex: 0 0 auto; }
-      .confbadge.pending { color: var(--acc); background: rgba(247,147,26,0.12); }
-      .confbadge.done { color: var(--grn); background: rgba(52,198,106,0.13); }
-      .art .fine { color: var(--mut2); font-size: 11.5px; margin-top: 9px; }
-      .honesty { color: var(--mut2); font-size: 12px; margin: 12px 2px 0; font-style: italic; }
+      .copy { cursor: pointer; color: var(--mut2); border: 1px solid var(--line2); border-radius: 6px; padding: 3px 9px; font-size: 11px; flex: 0 0 auto; user-select: none; }
+      .copy:hover { color: var(--ink); }
+      .confbadge { font-size: 11.5px; font-family: ui-monospace, monospace; padding: 2px 9px; border-radius: 999px; flex: 0 0 auto; }
+      .confbadge.pending { color: var(--acc); background: rgba(200,80,30,0.1); }
+      .confbadge.done { color: var(--grn); background: rgba(47,158,91,0.12); }
+      .art .fine { color: var(--mut2); font-size: 11.5px; margin-top: 8px; }
+      .contrast { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-top: 16px; }
+      .contrast h4 { font-size: 14px; margin-bottom: 8px; }
+      .contrast ul { list-style: none; display: grid; gap: 6px; }
+      .contrast li { font-size: 13px; color: var(--body); display: flex; align-items: center; gap: 9px; }
+      .contrast li .x { color: #c5402a; font-weight: 700; flex: 0 0 auto; }
+      .honesty { color: var(--mut2); font-size: 12px; font-style: italic; margin: 16px 2px 0; line-height: 1.5; }
+      .rcta { display: flex; gap: 12px; justify-content: center; margin-top: 26px; flex-wrap: wrap; }
 
-      .dev-body h4 { margin: 16px 0 7px; font-size: 12.5px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--mut); }
-      .dev-body p { color: var(--mut); font-size: 13.5px; margin: 0 0 8px; }
-      .map { width: 100%; border-collapse: collapse; font-size: 13px; }
-      .map td { padding: 6px 10px; border-bottom: 1px solid #1b2229; vertical-align: top; color: var(--mut); }
-      .map td:first-child { font-family: var(--mono); color: var(--fg); white-space: nowrap; font-size: 12px; }
-      .sec-note { background: #1c1410; border: 1px solid #43321a; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #e2d3b8; }
-      .sec-note b { color: var(--acc); }
+      /* drawer + toast */
+      .scrim { position: fixed; inset: 0; background: rgba(28,27,24,0.32); z-index: 60; animation: fade 0.25s ease both; }
+      .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 92vw; background: var(--bg); z-index: 61; display: flex; flex-direction: column; animation: drawerIn 0.34s cubic-bezier(.2,.7,.2,1) both; box-shadow: -20px 0 50px rgba(28,27,24,0.14); }
+      .drawer .dh { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px; border-bottom: 1px solid var(--line); }
+      .drawer .dh h2 { font-family: var(--serif); font-size: 24px; }
+      .drawer .x { background: none; border: 0; cursor: pointer; padding: 6px; color: var(--mut); display: flex; }
+      .drawer .x:hover { color: var(--ink); }
+      .drawer .items { flex: 1; overflow-y: auto; padding: 4px 24px; }
+      .crow { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+      .crow .ph { width: 70px; height: 86px; border-radius: 10px; flex-shrink: 0; position: relative; overflow: hidden; }
+      .crow .obj { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--serif); font-style: italic; font-size: 15px; color: rgba(28,27,24,0.22); }
+      .crow .nm { font-family: var(--serif); font-size: 16px; line-height: 1.2; }
+      .crow .by { font-size: 13px; color: var(--mut); margin-top: 3px; }
+      .qty { display: flex; align-items: center; gap: 2px; border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; }
+      .qty button { background: #fff; border: 0; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; color: var(--ink); }
+      .qty button:hover { background: rgba(28,27,24,0.05); }
+      .qty span { min-width: 24px; text-align: center; font-weight: 600; font-size: 14px; }
+      .drawer .foot { padding: 20px 24px; border-top: 1px solid var(--line2); background: var(--panel); }
+      .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+      .toast { position: fixed; bottom: 28px; left: 50%; z-index: 80; background: var(--ink); color: var(--bg); font-weight: 500; font-size: 14px; padding: 13px 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(28,27,24,0.25); animation: toastIn 0.3s cubic-bezier(.2,.7,.2,1) both; display: flex; align-items: center; gap: 10px; }
+      .toast svg { color: var(--acc); }
 
-      footer { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--mut2); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
-      footer a { color: var(--mut); }
-      footer .spacer { flex: 1; }
-
-      @media (max-width: 540px) {
-        .wrap { padding: 0 14px 48px; }
-        .listing { gap: 12px; padding: 14px; }
-        .thumb { width: 52px; height: 52px; flex: 0 0 52px; font-size: 24px; }
-        .li-price { font-size: 19px; }
+      /* Below full-desktop, drop the trust explanations + "powered by" so the labels stay
+         centered with comfortable side margins instead of stretching edge-to-edge. */
+      @media (max-width: 1320px) { .trust .exp, .trust .pow { display: none; } .trust .wrap { gap: 26px; } }
+      @media (max-width: 1000px) {
+        header.site .bar { gap: 14px; }
+        .search { max-width: 380px; }
+      }
+      @media (max-width: 760px) {
+        .search { max-width: 240px; }
+        .trust .wrap { gap: 18px; }
+      }
+      @media (max-width: 880px) {
+        .hero { grid-template-columns: 1fr; gap: 28px; padding: 40px 0 36px; }
+        .hero h1 { font-size: 46px; }
+        .pdp .split, .checkout .split { grid-template-columns: 1fr; gap: 28px; }
+        .gallery { position: static; }
+        .simgrid { grid-template-columns: repeat(2,1fr); }
+        footer.site .cols { grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 560px) {
+        .wrap, .pdp, .checkout { padding-left: 16px; padding-right: 16px; }
+        .search { display: none; }
+        .hero h1 { font-size: 38px; }
+        .grid { grid-template-columns: repeat(2, 1fr); gap: 20px 14px; }
+        .simgrid { grid-template-columns: repeat(2,1fr); }
+        .trust .wrap { gap: 12px; font-size: 11.5px; }
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div class="top">
-        <div class="brand">Parcel<span class="o">21</span></div>
-        <div class="links">
-          <a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">GitHub</a>
-          <a href="#proof">The proof</a>
+    <header class="site">
+      <div class="wrap bar">
+        <button class="logo" data-act="home"><b>Parcel</b><b class="o">21</b></button>
+        <div class="search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#76726A" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input id="q" placeholder="Search for anything…" autocomplete="off" />
+        </div>
+        <nav class="head">
+          <button class="btn-sell" data-act="sell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span class="sell-t">Sell</span></button>
+          <button class="ic-btn" data-act="saved"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span id="savedBadge"></span></button>
+          <button class="ic-btn" data-act="cart"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v13a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span id="cartBadge"></span></button>
+          <div class="avatar">JL</div>
+        </nav>
+      </div>
+      <div class="trust">
+        <div class="wrap">
+          <span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <b>Private payments</b><span class="exp"> — the marketplace never sees them</span></span>
+          <span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <b>Settled on Bitcoin</b><span class="exp"> — final and unstoppable</span></span>
+          <span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> <b>No platform fee</b><span class="exp"> — you pay the seller, not us</span></span>
+          <span class="pow">powered by RGB over Nostr</span>
         </div>
       </div>
+    </header>
 
-      <section class="hero">
-        <h1>A dollar changes hands. <span class="grad">No one in the middle.</span></h1>
-        <p class="lede">
-          A Bitcoin-based dollar goes straight from one person to another over <b>Nostr</b> — encrypted end to end,
-          with no bank, marketplace, or middleman that can watch it, take a cut, or block it. Below is a <b>real</b>
-          transfer, told as a sale you can follow.
-        </p>
-        <div class="livechip" id="livechip"><span class="dot warn"></span>connecting…</div>
-      </section>
-
-      <!-- ACT 1 — the sale -->
-      <div id="storywrap">
-        <div class="listing" id="listing"></div>
-        <p class="li-line" id="liline"></p>
-        <div id="fund"></div>
-        <button class="run" id="run" disabled>Checking…</button>
-        <div class="ctasub">Real money, real Bitcoin. Test network only — no real-value funds.</div>
-        <div class="err-msg" id="err" hidden></div>
-      </div>
-
-      <!-- ACT 1 — the payment, in three beats -->
-      <div id="runwrap" hidden>
-        <div class="sec-h"><h2 id="runh">Sending the payment</h2></div>
-        <div class="beats" id="beats"></div>
-        <details class="hood">
-          <summary>Show what happened under the hood <span class="chev">›</span></summary>
-          <div class="hood-body">
-            <ul class="steps" id="steps"></ul>
-            <svg viewBox="0 0 700 196" xmlns="http://www.w3.org/2000/svg" class="flowsvg" role="img" aria-label="Buyer gift-wraps the dollar to a Nostr relay that sees only ciphertext; the seller is pushed the encrypted payment, validates it, and ACKs; it then settles in a Bitcoin transaction.">
-              <defs>
-                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6672"/></marker>
-                <marker id="arrg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f7931a"/></marker>
-              </defs>
-              <g font-family="var(--sans)" text-anchor="middle">
-                <rect x="8" y="40" width="150" height="56" rx="11" fill="#1a2027" stroke="#36424f"/>
-                <text x="83" y="64" fill="#eef2f6" font-size="14" font-weight="600">Buyer</text>
-                <text x="83" y="82" fill="#8e9aa7" font-size="11">sends the dollar</text>
-                <rect x="275" y="34" width="150" height="68" rx="11" fill="#171a13" stroke="#4a3814"/>
-                <text x="350" y="58" fill="#f7931a" font-size="14" font-weight="700">Nostr relay</text>
-                <text x="350" y="76" fill="#8e9aa7" font-size="11">sees only ciphertext</text>
-                <text x="350" y="90" fill="#8e9aa7" font-size="11">anyone can run one</text>
-                <rect x="542" y="40" width="150" height="56" rx="11" fill="#1a2027" stroke="#36424f"/>
-                <text x="617" y="64" fill="#eef2f6" font-size="14" font-weight="600">Seller</text>
-                <text x="617" y="82" fill="#8e9aa7" font-size="11">validates &amp; gets paid</text>
-              </g>
-              <g font-family="var(--sans)" font-size="11" text-anchor="middle">
-                <line x1="160" y1="60" x2="271" y2="60" stroke="#f7931a" stroke-width="2" marker-end="url(#arrg)"/>
-                <text x="215" y="50" fill="#f7931a" font-weight="600">🔒 gift-wrap</text>
-                <line x1="427" y1="60" x2="540" y2="60" stroke="#f7931a" stroke-width="2" marker-end="url(#arrg)"/>
-                <text x="484" y="50" fill="#f7931a" font-weight="600">push</text>
-                <text x="350" y="124" fill="#8e9aa7">authenticated ACK ←</text>
-                <line x1="540" y1="130" x2="161" y2="130" stroke="#5b6672" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arr)"/>
-              </g>
-              <g font-family="var(--sans)" text-anchor="middle">
-                <line x1="350" y1="142" x2="350" y2="158" stroke="#5b6672" stroke-width="1.5" marker-end="url(#arr)"/>
-                <rect x="250" y="158" width="200" height="28" rx="9" fill="#13171c" stroke="#29323c"/>
-                <text x="350" y="177" fill="#cfd6dd" font-size="12">↳ settles in a Bitcoin tx</text>
-              </g>
-            </svg>
-          </div>
-        </details>
-      </div>
-
-      <!-- ACT 2 — the proof -->
-      <div id="resultwrap" hidden>
-        <div id="outcome"></div>
-        <div class="sec-h" id="proof">
-          <h2>Where did the money actually go?</h2>
-          <p>None of that was pretend. Here is the real, public evidence the payment happened — and notice what is <b>missing</b> from it.</p>
-        </div>
-        <div class="arts" id="arts"></div>
-        <p class="honesty" id="honesty"></p>
-      </div>
-
-      <!-- developer layer -->
-      <details class="dev">
-        <summary>For developers — the protocol, event kinds, and the security model <span class="chev">›</span></summary>
-        <div class="dev-body">
-          <h4>Drop-in for the RGB proxy protocol</h4>
-          <p>Parcel21 mirrors <a href="https://github.com/RGB-Tools/rgb-http-json-rpc" target="_blank" rel="noopener">RGB HTTP JSON-RPC</a> so wallets can adopt it as an alternative transport. Each method maps to a Nostr mechanism:</p>
-          <table class="map">
-            <tr><td>consignment.post</td><td>Buyer gift-wraps the consignment to the seller (kind 1059)</td></tr>
-            <tr><td>consignment.get</td><td>Seller subscribes for gift wraps addressed to it and unwraps</td></tr>
-            <tr><td>ack.post</td><td>Seller gift-wraps an ACK to the buyer's per-transfer reply key</td></tr>
-            <tr><td>ack.get</td><td>Buyer is pushed the ACK — no polling</td></tr>
-          </table>
-          <h4>Encryption &amp; transport</h4>
-          <p>Payloads are encrypted with NIP-44 and wrapped with NIP-59 gift wrap, addressed to an ephemeral key — so the relay sees an opaque blob, not the contents or the real parties. Small consignments ride inline; larger ones go to encrypted Blossom storage referenced inside the wrap.</p>
-          <h4>Security model</h4>
-          <p class="sec-note"><b>Authenticated unwrap (a normative MUST).</b> A naive gift-wrap unwrap does two decryptions and <b>no</b> authentication — so a forged wrap could fake an ACK and trigger a Bitcoin broadcast. Parcel21 verifies the seal signature, binds the seal's key to the rumor author, and recomputes the rumor id on every unwrap, and only broadcasts the witness tx <b>after</b> a verified ACK.</p>
-          <h4>Read the source</h4>
-          <p>
-            <a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">Repository</a> ·
-            <a href="https://github.com/node21labs/parcel21/blob/main/docs/architecture.md" target="_blank" rel="noopener">Architecture</a> ·
-            <a href="https://github.com/node21labs/parcel21/tree/main/spec" target="_blank" rel="noopener">The NIP spec</a> ·
-            <a href="https://github.com/node21labs/parcel21/blob/main/integration/PROOF-mutinynet.md" target="_blank" rel="noopener">Reproduce it</a>
-          </p>
-        </div>
-      </details>
-
-      <footer>
-        <span id="footnet">test network only — RC/alpha tooling, no real-value assets</span>
-        <span class="spacer"></span>
-        <a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">node21labs/parcel21</a>
-      </footer>
-    </div>
+    <div id="main"></div>
+    <div id="drawer"></div>
+    <div id="toast"></div>
 
     <script>
       const $ = (s) => document.querySelector(s)
-      let CFG = {}, active = null
-
-      // illustrative marketplace sales — the people & items are an example; the transfer underneath is real.
-      const SALES = [
-        { thumb: '📮', item: '1965 jazz-festival postcard', buyer: 'Lena', bcity: 'Lisbon', seller: 'Theo', scity: 'Detroit' },
-        { thumb: '🎟️', item: '1966 concert ticket stub', buyer: 'Amara', bcity: 'Lagos', seller: 'Finn', scity: 'Liverpool' },
-        { thumb: '🃏', item: '1999 holographic trading card', buyer: 'Noah', bcity: 'Toronto', seller: 'Yuki', scity: 'Osaka' },
-        { thumb: '📌', item: 'vintage enamel travel pin', buyer: 'Sam', bcity: 'Manila', seller: 'Priya', scity: 'Mumbai' },
-        { thumb: '💿', item: '1978 jazz-funk 7-inch single', buyer: 'Mateo', bcity: 'Bogotá', seller: 'Iris', scity: 'Berlin' },
+      const PRODUCTS = [
+        {id:1,name:"Rolleiflex 2.8F Twin-Lens",obj:"Camera",cat:"Cameras",price:1240,cond:"Vintage",seller:"Atelier Mori",city:"Kyoto",rating:4.9,sales:"1,204",ship:"+ $18 shipping",tint:"#EAE3D7",desc:"A meticulously serviced twin-lens reflex with crisp Planar glass. Recently cleaned, lubricated and adjusted — ready for a lifetime more."},
+        {id:2,name:"Walnut Lounge Chair & Ottoman",obj:"Chair",cat:"Home & Living",price:890,cond:"Good",seller:"Field & Form",city:"Portland",rating:4.8,sales:"870",ship:"Local pickup only",tint:"#DCE4DD",desc:"Walnut shell and aniline leather in a timeless silhouette. Honest patina, structurally perfect. A chair to be handed down."},
+        {id:3,name:"HHKB Pro Hybrid Keyboard",obj:"Keyboard",cat:"Electronics",price:210,cond:"Like new",seller:"Keebs Co",city:"Austin",rating:5.0,sales:"332",ship:"Free shipping",tint:"#DBE0E7",desc:"Topre electrostatic capacitive switches, barely used. Quiet, precise and endlessly tweakable. Includes original box and cable."},
+        {id:4,name:"Hand-thrown Stoneware Vase",obj:"Vase",cat:"Art",price:64,cond:"New",seller:"Clay & Co",city:"Asheville",rating:4.9,sales:"540",ship:"+ $9 shipping",tint:"#ECE4D6",desc:"Wheel-thrown stoneware finished in a soft matte oatmeal glaze. One of a small studio batch — quietly imperfect, entirely original."},
+        {id:5,name:"1968 Omega Seamaster",obj:"Watch",cat:"Watches",price:1980,cond:"Good",seller:"Horology House",city:"New York",rating:4.7,sales:"2,110",ship:"Free shipping",tint:"#E1DDD6",desc:"A 1968 Seamaster on a fresh leather strap. Runs strong and keeps excellent time. Light honest wear consistent with its age."},
+        {id:6,name:"Reynolds 531 Road Bike",obj:"Bicycle",cat:"Outdoors",price:620,cond:"Good",seller:"Cogset",city:"Minneapolis",rating:4.8,sales:"415",ship:"Local pickup only",tint:"#D9E2DC",desc:"Classic steel frame in Reynolds 531 tubing, freshly tuned. A fast, forgiving everyday ride with decades left in it."},
+        {id:7,name:"Camel Wool Overcoat",obj:"Coat",cat:"Fashion",price:145,cond:"Like new",seller:"The Mend",city:"London",rating:4.9,sales:"690",ship:"+ $12 shipping",tint:"#EBE6DC",desc:"Pure wool in a classic camel, with tailored shoulders and a clean drape. Worn twice — essentially new, minus the price."},
+        {id:8,name:"Blue Note First Pressing LP",obj:"Vinyl",cat:"Music",price:88,cond:"Vintage",seller:"Groove Merchant",city:"San Francisco",rating:4.8,sales:"1,540",ship:"+ $6 shipping",tint:"#E6DEE2",desc:"An original Blue Note pressing with light surface marks that play through beautifully. Deep groove, the way it was meant to sound."},
+        {id:9,name:"Anglepoise Task Lamp",obj:"Lamp",cat:"Home & Living",price:130,cond:"Good",seller:"Field & Form",city:"Portland",rating:4.8,sales:"870",ship:"+ $14 shipping",tint:"#EAE3D7",desc:"The original spring-balanced task lamp, rewired and ready. Patinated in all the right places. Built to outlast everything on your desk."},
+        {id:10,name:"Leica Summicron 50mm f/2",obj:"Lens",cat:"Cameras",price:1450,cond:"Like new",seller:"Atelier Mori",city:"Kyoto",rating:4.9,sales:"1,204",ship:"Free shipping",tint:"#DBE0E7",desc:"A reference 50mm with clean, clear optics and that unmistakable rendering. The portrait lens by which others are measured."},
+        {id:11,name:"Large Monstera Deliciosa",obj:"Plant",cat:"Outdoors",price:48,cond:"New",seller:"Leaf & Co",city:"Austin",rating:5.0,sales:"280",ship:"Local pickup only",tint:"#D9E2DC",desc:"An established split-leaf monstera in a terracotta pot. Thriving, well-rooted and ready to take over a sunny corner."},
+        {id:12,name:"First-Edition Hardcover Set",obj:"Books",cat:"Books",price:260,cond:"Vintage",seller:"Marginalia",city:"Boston",rating:4.9,sales:"360",ship:"+ $10 shipping",tint:"#ECE4D6",desc:"A matched first-edition set kept in protected jackets. Collector grade, clean interiors, and the kind of spines that anchor a shelf."}
       ]
-      const pickSale = (seed) => SALES[Math.abs(seed) % SALES.length]
-      const hashStr = (s) => { let h = 0; for (const c of (s || '')) h = (h * 31 + c.charCodeAt(0)) | 0; return h }
+      const CATS = ["All","Cameras","Home & Living","Fashion","Electronics","Watches","Art","Music","Outdoors","Books"]
+      const ST = { screen:"home", activeId:null, category:"All", query:"", sort:"trending", saved:[], cart:{}, drawer:false, pay:null, beats:{}, result:null }
+      let CFG = {}
 
-      const STEPS = [
-        ['invoice', 'Seller requests the dollar', 'witness invoice'],
-        ['transfer', 'Buyer prepares the payment', 'RGB consignment + PSBT'],
-        ['deliver', 'Encrypt and send over Nostr', 'NIP-59 gift-wrap → relay'],
-        ['received', "Seller's wallet receives it — encrypted", 'relay saw only ciphertext'],
-        ['validate', "Seller checks it's a real dollar", 'rgb validate'],
-        ['ack', 'Seller confirms back to the buyer', 'authenticated ACK'],
-        ['broadcast', 'Settle on Bitcoin', 'witness tx broadcast'],
-        ['accept', 'Seller now owns the dollar', 'accepted into stash'],
-      ]
+      const fmt = (n) => "$" + n.toLocaleString("en-US")
+      const initials = (s) => s.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase()
+      const prod = (id) => PRODUCTS.find(p=>p.id===id)
+      const esc = (s) => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
+      const sheen = (light) => `<div class="sheen"></div>`
+      const phImg = (p) => `<img class="phimg" src="images/p${p.id}.jpg" alt="${esc(p.name)}" loading="lazy" onerror="this.remove()">`
+      const trunc = (s,n=9) => (s&&s.length>n*2 ? s.slice(0,n)+"…"+s.slice(-n) : s||"")
+
+      function filtered() {
+        let list = PRODUCTS.slice()
+        if (ST.category==="__saved") list = list.filter(p=>ST.saved.includes(p.id))
+        else if (ST.category!=="All") list = list.filter(p=>p.cat===ST.category)
+        const q = ST.query.trim().toLowerCase()
+        if (q) list = list.filter(p=>(p.name+" "+p.cat+" "+p.obj+" "+p.seller).toLowerCase().includes(q))
+        if (ST.sort==="low") list.sort((a,b)=>a.price-b.price)
+        else if (ST.sort==="high") list.sort((a,b)=>b.price-a.price)
+        return list
+      }
+      const cartCount = () => Object.values(ST.cart).reduce((a,b)=>a+b,0)
+      const cartList = () => Object.keys(ST.cart).map(id=>({p:prod(+id),qty:ST.cart[id]}))
+      const subtotal = () => cartList().reduce((s,{p,qty})=>s+p.price*qty,0)
+
+      // ---------- views ----------
+      function cardHTML(p) {
+        const saved = ST.saved.includes(p.id)
+        const heart = saved
+          ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="${'var(--acc)'}" stroke="${'var(--acc)'}" stroke-width="1.6" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`
+          : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C1B18" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`
+        return `<article class="card" data-act="open" data-id="${p.id}">
+          <div class="ph" style="background:${p.tint}">${phImg(p)}<span class="cat">${esc(p.cat)}</span>
+            <button class="heart" data-act="save" data-id="${p.id}">${heart}</button></div>
+          <div class="meta"><div class="top"><h3 class="nm">${esc(p.name)}</h3><span class="pr">${fmt(p.price)}</span></div>
+            <div class="cond"><span>${esc(p.cond)}</span><span class="d">·</span><span>${esc(p.seller)}</span></div>
+            <div class="ship">${esc(p.ship)}</div></div></article>`
+      }
+
+      function homeHTML() {
+        const list = filtered()
+        const showHero = ST.category==="All" && !ST.query
+        const f = PRODUCTS[0]
+        const hero = showHero ? `<section class="hero">
+          <div><div class="eyebrow"><span></span>A private marketplace</div>
+            <h1>Things worth <span class="ital">keeping</span>.<br>Money that stays <span class="ital">yours</span>.</h1>
+            <p>Buy and sell cameras, furniture, watches and the well-made rest — and pay the seller directly: private, settled on Bitcoin, with no platform in the middle.</p>
+            <div class="cta"><button class="btn-dark" data-act="scrollfeed">Explore the edit</button><button class="btn-ghost" data-act="sell">Start selling</button></div></div>
+          <button class="feat" style="background:${f.tint}" data-act="open" data-id="${f.id}">${phImg(f)}<span class="cat">${esc(f.cat)}</span>
+            <div class="cap"><div class="k">Editor's pick</div><div class="n">${esc(f.name)}</div><div class="pr">${fmt(f.price)}</div></div></button>
+        </section>` : ""
+        const cats = CATS.map(c=>`<button class="chip ${ST.category===c?'on':''}" data-act="cat" data-cat="${esc(c)}">${esc(c)}</button>`).join("")
+        const title = ST.category==="__saved" ? "Saved items" : ST.query ? "Results" : ST.category==="All" ? "Browse the marketplace" : ST.category
+        const feed = list.length
+          ? `<div class="grid">${list.map(cardHTML).join("")}</div>`
+          : `<div style="text-align:center;padding:80px 0;"><div class="serif ital" style="font-size:26px;margin-bottom:8px;">Nothing here yet.</div><div style="color:var(--mut);margin-bottom:20px;">Try another search or category.</div><button class="btn-dark" data-act="clear">Clear filters</button></div>`
+        return `<main><div class="wrap">${hero}</div>
+          <div class="catbar"><div class="wrap" style="padding:0;"><div class="row">${cats}</div></div></div>
+          <div class="wrap"><div class="feedhead"><div><h2>${esc(title)}</h2><div class="sub">${list.length} ${list.length===1?'listing':'listings'}</div></div>
+            <div class="sortwrap"><span>Sort</span><div style="position:relative;display:flex;align-items:center;"><select id="sort"><option value="trending"${ST.sort==='trending'?' selected':''}>Trending</option><option value="low"${ST.sort==='low'?' selected':''}>Price: Low to High</option><option value="high"${ST.sort==='high'?' selected':''}>Price: High to Low</option></select>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1C1B18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div></div>
+            ${feed}</div>${footerHTML()}</main>`
+      }
+      function footerHTML() {
+        return `<footer class="site"><div class="cols">
+          <div><div class="logo" style="cursor:default"><b>Parcel</b><b class="o">21</b></div><p class="blurb">Buy and sell things worth keeping, with payments that settle privately on Bitcoin — straight to the seller.</p></div>
+          <div><div class="ch">Marketplace</div><div class="lk"><span>Browse all</span><span>Categories</span><span>Featured sellers</span><span>New arrivals</span></div></div>
+          <div><div class="ch">How payments work</div><div class="lk"><a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">Private by design</a><a href="https://github.com/node21labs/parcel21/blob/main/docs/architecture.md" target="_blank" rel="noopener">Settled on Bitcoin</a><a href="https://github.com/node21labs/parcel21/tree/main/spec" target="_blank" rel="noopener">The protocol</a></div></div>
+          <div><div class="ch">Company</div><div class="lk"><span>About</span><span>Trust &amp; safety</span><span>Help center</span><span>Contact</span></div></div>
+        </div><div class="legal"><span>© 2026 Parcel21 · test network demo</span><span>powered by RGB over Nostr</span></div></footer>`
+      }
+
+      function productHTML() {
+        const p = prod(ST.activeId); if (!p) return homeHTML()
+        const saved = ST.saved.includes(p.id)
+        const favIcon = saved
+          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="var(--acc)" stroke="var(--acc)" stroke-width="1.6" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C1B18" stroke-width="1.7" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`
+        const sim = PRODUCTS.filter(x=>x.cat===p.cat&&x.id!==p.id).concat(PRODUCTS.filter(x=>x.cat!==p.cat)).slice(0,4)
+        const thumbs = [0,1,2,3].map(()=>`<div class="thumb" style="background:${p.tint}">${phImg(p)}</div>`).join("")
+        const simHTML = sim.map(s=>`<article class="card" data-act="open" data-id="${s.id}"><div class="ph" style="background:${s.tint};aspect-ratio:4/5">${phImg(s)}</div><div class="meta"><div class="top"><h3 class="nm" style="font-size:16px">${esc(s.name)}</h3><span class="pr" style="font-size:15px">${fmt(s.price)}</span></div></div></article>`).join("")
+        return `<main><div class="pdp">
+          <button class="back" data-act="home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back to browse</button>
+          <div class="split">
+            <div class="gallery"><div class="main" style="background:${p.tint}">${phImg(p)}<span style="position:absolute;top:18px;left:18px;z-index:2;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#46443f;background:rgba(255,255,255,0.86);padding:5px 10px;border-radius:8px;backdrop-filter:blur(6px)">${esc(p.cat)}</span></div><div class="thumbs">${thumbs}</div></div>
+            <div class="pinfo">
+              <div class="tags"><span class="cat">${esc(p.cat)}</span><span class="cond">${esc(p.cond)}</span></div>
+              <h1>${esc(p.name)}</h1>
+              <div class="price"><b>${fmt(p.price)}</b><span class="s">${esc(p.ship)}</span></div>
+              <p class="desc">${esc(p.desc)}</p>
+              <div class="acts">
+                <button class="btn-buy" data-act="buy" data-id="${p.id}">Buy it now</button>
+                <button class="btn-cart" data-act="addcart" data-id="${p.id}">Add to cart</button>
+                <button class="btn-fav" data-act="save" data-id="${p.id}">${favIcon}</button>
+              </div>
+              <button class="btn-offer" data-act="offer">Make an offer</button>
+              <div class="seller"><div class="av" style="background:${p.tint}">${initials(p.seller)}</div>
+                <div style="flex:1"><div class="nm">${esc(p.seller)}<svg width="15" height="15" viewBox="0 0 24 24" fill="var(--acc)" stroke="none"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8z"/></svg></div><div class="meta">${esc(p.city)} · ${p.rating} ★ · ${p.sales} sold</div></div>
+                <button class="store">View store</button></div>
+              <div class="trustrow">
+                <div class="r"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><div><b>Private checkout.</b> The marketplace never sees the amount, the item, or who you are.</div></div>
+                <div class="r"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div><b>Settled on Bitcoin.</b> Your payment goes straight to the seller — final, and impossible to freeze.</div></div>
+                <div class="r"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><div><b>No platform fee.</b> You pay the seller, not a middleman taking a cut.</div></div>
+              </div>
+            </div></div>
+          <div class="similar"><h2>You might also like</h2><div class="simgrid">${simHTML}</div></div>
+        </div></main>`
+      }
+
+      function checkoutHTML() {
+        const p = prod(ST.activeId) || cartList()[0]?.p; if (!p) return homeHTML()
+        const total = ST.activeId ? p.price : subtotal()
+        const ship = 0
+        const running = !!ST.pay
+        const beatsHTML = BEATS.map(b=>{
+          const st = beatStatus(b)
+          const ic = st==='ok'?'✓':st==='error'?'✕':''
+          return `<div class="beat ${st}"><span class="bic">${ic}</span><div><div class="bl">${b.lab(p)}</div><div class="bs">${b.sub}</div></div></div>`
+        }).join("")
+        const payPanel = running
+          ? `<div class="pay"><h3 class="serif" style="font-size:20px;margin-bottom:4px">Paying ${esc(p.seller)} privately…</h3><div class="beats">${beatsHTML}</div></div>`
+          : `<div class="pay"><h3 class="serif" style="font-size:20px">Pay ${esc(p.seller)} directly</h3>
+              <p class="lede">No card, no PayPal, no platform fee. Your payment goes <b>straight to the seller</b>, encrypted and settled on Bitcoin. The marketplace never sees the amount, the item, or who you are.</p>
+              <div class="payways">
+                <div class="payway on"><div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="t"><b>Parcel21 private pay</b><span>direct to seller · on Bitcoin · no fee</span></div><span class="pick">SELECTED</span></div>
+                <div class="payway"><div class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div class="t"><b>Card</b><span>seen by the processor, the platform, and the bank</span></div></div>
+              </div>
+              <button class="btn-pay" data-act="pay">Pay ${fmt(total)} privately</button>
+              <div class="demo-note">Live demo — this settles a real <b>$1</b> payment on Bitcoin's test network to show exactly how Parcel21 pays a seller. No real funds move, no goods ship.</div></div>`
+        return `<main><div class="checkout">
+          <button class="back" data-act="${ST.activeId?'openback':'home'}" data-id="${p.id}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back</button>
+          <h1 class="serif" style="font-size:34px;margin-bottom:24px">Checkout</h1>
+          <div class="split">
+            <div class="summary"><h3>Order summary</h3>
+              <div class="sitem"><div class="ph" style="background:${p.tint}">${phImg(p)}</div>
+                <div><div class="nm">${esc(p.name)}</div><div class="by">${esc(p.cond)} · ${esc(p.seller)} · ${esc(p.city)}</div></div></div>
+              <div class="srow"><span>Item</span><span>${fmt(total)}</span></div>
+              <div class="srow"><span>Shipping</span><span>${esc(p.ship)}</span></div>
+              <div class="srow"><span>Platform fee</span><span style="color:var(--grn)">$0 — none</span></div>
+              <div class="srow total"><span>Total</span><span>${fmt(total)}</span></div></div>
+            ${payPanel}
+          </div></div></main>`
+      }
+
+      function receiptHTML() {
+        const r = ST.result, p = prod(ST.activeId) || (r && r._product) || PRODUCTS[0]
+        if (!r) return homeHTML()
+        const bitcoin = `<div class="art"><div class="ah"><h3>Your payment settled on Bitcoin</h3><span class="badge chain">PUBLIC · ON-CHAIN</span></div>
+          <p class="pv">A permanent, public record that the money moved. The marketplace can't reverse it, hold it, or freeze it. Check it yourself:</p>
+          <div class="val"><a href="${r.explorerUrl}" target="_blank" rel="noopener">${trunc(r.bitcoinTxid,12)}</a><span class="confbadge pending" data-txid="${r.bitcoinTxid}">checking…</span></div></div>`
+        const nostr = `<div class="art"><div class="ah"><h3>All the network ever saw</h3><span class="badge enc">ENCRYPTED · KIND 1059</span></div>
+          <p class="pv">This is the actual message that carried your payment across the internet. Open it — it's encrypted gibberish. The relay, the marketplace, anyone watching: all they see is <b>this</b>. Not the price, not the item, not you.</p>
+          <div class="val"><a href="${r.nostrGuruUrl}" target="_blank" rel="noopener">open the message — see only ciphertext</a><span class="copy" data-copy="${r.nostrGuruUrl}">copy</span></div>
+          <div class="fine">event ${trunc(r.nostrEventId,7)} · ${r.consignmentBytes.toLocaleString()} bytes, encrypted</div></div>`
+        const rgb = `<div class="art"><div class="ah"><h3>The consignment</h3><span class="badge priv">PRIVATE · CLIENT-SIDE</span></div>
+          <p class="pv">In a marketplace, a <b>consignment</b> is goods handed over to be sold. Here it's the cryptographic proof of the payment — and it lives only on your device and the seller's, never on a server. There's no explorer to link, and that is the privacy.</p>
+          <div class="val"><span>${esc(r.contractId)}</span><span class="copy" data-copy="${esc(r.contractId)}">copy</span></div></div>`
+        return `<main><div class="receipt">
+          <div class="rhead"><div class="ck">✓</div><h1>Paid — ${esc(p.name)} is yours</h1>
+            <p>You paid ${esc(p.seller)} directly. Private, final, and settled on Bitcoin in seconds — with no platform in the middle.</p></div>
+          <div class="reveal-h">Where did the money actually go?</div>
+          <div class="reveal-sub">None of that was pretend. Here is the real, public evidence — and notice what is <b>missing</b> from it.</div>
+          <div class="arts">${bitcoin}${nostr}${rgb}</div>
+          <div class="contrast"><h4>What a normal marketplace checkout would have leaked — and this didn't:</h4>
+            <ul><li><span class="x">✕</span> your card number and billing details</li><li><span class="x">✕</span> the price and exactly what you bought</li><li><span class="x">✕</span> who you are and who you paid</li><li><span class="x">✕</span> a 10–15% platform + processor fee</li></ul></div>
+          <p class="honesty">${esc(p.seller)} and the ${esc(p.name)} are an illustration. The Bitcoin transaction, the Nostr message, and the consignment above are 100% real — go check them.</p>
+          <div class="rcta"><button class="btn-dark" data-act="home">Keep shopping</button><a class="btn-ghost" href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener" style="display:inline-flex;align-items:center">How this works</a></div>
+        </div></main>`
+      }
+
+      function drawerHTML() {
+        if (!ST.drawer) return ""
+        const items = cartList()
+        const body = items.length
+          ? `<div class="items p21-scroll">${items.map(({p,qty})=>`<div class="crow"><div class="ph" style="background:${p.tint}">${phImg(p)}</div>
+              <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;gap:8px"><h3 class="nm">${esc(p.name)}</h3><button class="x" data-act="rm" data-id="${p.id}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+              <div class="by">${esc(p.cond)} · ${esc(p.seller)}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px"><div class="qty"><button data-act="dec" data-id="${p.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button><span>${qty}</span><button data-act="inc" data-id="${p.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><span style="font-weight:700;font-size:15px">${fmt(p.price*qty)}</span></div></div></div>`).join("")}</div>
+            <div class="foot"><div class="srow"><span>Subtotal</span><span>${fmt(subtotal())}</span></div><div class="srow" style="margin-bottom:12px"><span>Private payment</span><span style="color:var(--grn)">no fee</span></div>
+              <button class="btn-pay" data-act="checkout">Checkout privately · ${fmt(subtotal())}</button></div>`
+          : `<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c9c4b8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px"><path d="M6 2 3 6v13a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><div class="serif ital" style="font-size:22px;margin-bottom:6px">Your cart is empty</div><div style="color:var(--mut);margin-bottom:20px">Find something worth keeping.</div><button class="btn-dark" data-act="closecart">Browse the marketplace</button></div>`
+        return `<div class="scrim" data-act="closecart"></div><aside class="drawer"><div class="dh"><h2>Your cart ${cartCount()?`(${cartCount()})`:''}</h2><button class="x" data-act="closecart"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>${body}</aside>`
+      }
+
+      // ---------- payment beats ----------
       const BEATS = [
-        { steps: ['invoice', 'transfer', 'deliver'], lab: (s) => `${s.buyer} pays the dollar`, sub: 'sent directly — no marketplace, no bank' },
-        { steps: ['received', 'validate', 'ack'], lab: (s) => `${s.seller}'s wallet checks it's a real dollar`, sub: 'validated on the spot, peer to peer' },
-        { steps: ['broadcast', 'accept'], lab: (s) => `${s.seller} gets paid`, sub: 'settled for good on Bitcoin' },
+        { steps:['invoice','transfer','deliver'], lab:()=>'You pay — direct to the seller', sub:'encrypted and sent over Nostr' },
+        { steps:['received','validate','ack'], lab:(p)=>`${p.seller}'s wallet verifies the money`, sub:'checked on the spot, peer to peer' },
+        { steps:['broadcast','accept'], lab:(p)=>`${p.seller} is paid`, sub:'settled for good on Bitcoin' },
       ]
-      const trunc = (s, n = 9) => (s && s.length > n * 2 ? s.slice(0, n) + '…' + s.slice(-n) : s || '')
-
-      async function health() {
-        try {
-          const h = await (await fetch('/health')).json(); CFG = h
-          const dot = h.ready ? (h.lowBalance ? 'warn' : 'ok') : 'warn'
-          $('#livechip').innerHTML = `<span class="dot ${dot}"></span>` +
-            (h.ready ? `<b>live</b> · settling real $1 payments on <b>${h.networkLabel || h.network}</b>` : 'warming up…')
-          $('#footnet').textContent = `${h.networkLabel || h.network} · test network only — RC/alpha tooling, no real-value assets`
-          if (h.ready) {
-            $('#run').disabled = false
-            $('#fund').innerHTML = h.lowBalance ? `<div class="warn-box">Issuer balance is low — top up <code>${h.fundingAddress || ''}</code> if payments start failing.</div>` : ''
-          } else {
-            $('#run').textContent = 'Demo warming up…'
-            if (h.fundingAddress) $('#fund').innerHTML =
-              `<div class="warn-box">One-time setup: send test sats to <code>${h.fundingAddress}</code> via ` +
-              `<a href="https://faucet.mutinynet.com" target="_blank" rel="noopener">faucet.mutinynet.com</a>, then reload.</div>`
-          }
-          return h.ready
-        } catch { $('#livechip').innerHTML = `<span class="dot bad"></span>orchestrator unreachable`; return false }
-      }
-
-      function setSale(sale, sold) {
-        active = sale
-        $('#listing').innerHTML =
-          `<div class="thumb">${sale.thumb}</div>` +
-          `<div class="li-body"><div class="li-item">${sale.item}</div>` +
-          `<div class="li-route"><b>${sale.buyer}</b> · ${sale.bcity} &nbsp;→&nbsp; bought from <b>${sale.seller}</b> · ${sale.scity}</div></div>` +
-          `<div class="li-price">$1</div>` + (sold ? `<div class="sold">PAID</div>` : '')
-        $('#liline').innerHTML = sold
-          ? `<b>${sale.buyer}</b> paid <b>${sale.seller}</b> directly. The marketplace never touched the money, took a cut, or even learned what was sold.`
-          : `<b>${sale.buyer}</b> owes <b>${sale.seller}</b> $1 for the ${sale.item}. Paying directly — the marketplace doesn't touch the money, take a cut, or learn what changed hands.`
-        if (!sold && !$('#run').disabled) $('#run').textContent = `Pay ${sale.seller} $1`
-      }
-
-      function beatStatus(beat, state) {
-        const sts = beat.steps.map((s) => state[s] || '')
-        if (sts.some((s) => s === 'error')) return 'error'
-        if (sts.every((s) => s === 'ok')) return 'ok'
-        if (sts.some((s) => s === 'ok' || s === 'running')) return 'run'
+      function beatStatus(b) {
+        const s = b.steps.map(k=>ST.beats[k]||'')
+        if (s.some(x=>x==='error')) return 'error'
+        if (s.every(x=>x==='ok')) return 'ok'
+        if (s.some(x=>x==='ok'||x==='running')) return 'run'
         return ''
       }
-      function renderBeats(state) {
-        $('#runwrap').hidden = false
-        $('#beats').innerHTML = BEATS.map((b) => {
-          const st = beatStatus(b, state)
-          const ic = st === 'ok' ? '✓' : st === 'error' ? '✕' : ''
-          return `<div class="beat ${st}"><span class="bic">${ic}</span><div><div class="blab">${b.lab(active)}</div><div class="bsub">${b.sub}</div></div></div>`
-        }).join('')
-        $('#steps').innerHTML = STEPS.map(([k, lab, meta]) => {
-          const s = state[k] || ''
-          const cls = s === 'ok' ? 'ok' : s === 'error' ? 'err' : s === 'running' ? 'run' : ''
-          const ic = s === 'ok' ? '✓' : s === 'error' ? '✕' : ''
-          return `<li class="${cls}"><span class="ic">${ic}</span><span class="lab">${lab}</span><span class="meta">${meta}</span></li>`
-        }).join('')
+
+      // ---------- render ----------
+      function badges() {
+        $('#savedBadge').className = ST.saved.length ? 'ic-badge' : ''
+        $('#savedBadge').textContent = ST.saved.length || ''
+        $('#cartBadge').className = cartCount() ? 'ic-badge' : ''
+        $('#cartBadge').textContent = cartCount() || ''
+      }
+      function render(scrollTop) {
+        const v = ST.screen==='product' ? productHTML() : ST.screen==='checkout' ? checkoutHTML() : ST.screen==='receipt' ? receiptHTML() : homeHTML()
+        $('#main').innerHTML = v
+        $('#drawer').innerHTML = drawerHTML()
+        badges()
+        bindResultActions()
+        if (scrollTop) window.scrollTo(0,0)
+      }
+      function toast(msg) {
+        $('#toast').innerHTML = `<div class="toast"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>${esc(msg)}</div>`
+        clearTimeout(window._tt); window._tt = setTimeout(()=>{$('#toast').innerHTML=''}, 2200)
       }
 
-      function valLink(href, text) { return `<div class="val"><a href="${href}" target="_blank" rel="noopener">${text}</a><span class="copy" data-copy="${href}">copy</span></div>` }
-      function valText(text) { return `<div class="val"><span>${text}</span><span class="copy" data-copy="${text}">copy</span></div>` }
-
-      function renderResult(r, isExample) {
-        $('#resultwrap').hidden = false
-        const sale = active
-        $('#outcome').innerHTML =
-          `<div class="outcome"><span class="check">✓</span>` +
-          `<div><div class="t">${sale.seller} got paid $1</div>` +
-          `<div class="s">Paid directly over Nostr and settled on Bitcoin — no marketplace, no bank, no middleman.</div></div>` +
-          (isExample ? `<span class="ex-tag">a recent sale</span>` : '') + `</div>`
-
-        const bitcoin =
-          `<div class="art"><div class="ah"><h3>The dollar really moved on Bitcoin</h3><span class="badge chain">PUBLIC · ON-CHAIN</span></div>` +
-          `<p class="proves">A permanent, public record that $1 changed hands. No marketplace could reverse it, hold it, or freeze it. Check it yourself:</p>` +
-          `<div class="val"><a href="${r.explorerUrl}" target="_blank" rel="noopener">${trunc(r.bitcoinTxid, 12)}</a>` +
-          `<span class="confbadge pending" data-txid="${r.bitcoinTxid}">checking…</span></div></div>`
-
-        const nostr =
-          `<div class="art"><div class="ah"><h3>The message that carried the payment</h3><span class="badge enc">ENCRYPTED · KIND 1059</span></div>` +
-          `<p class="proves">This is exactly what crossed the internet to deliver the dollar. Open it — it's encrypted gibberish. The relay that passed it along, the marketplace, anyone watching: all they ever see is <b>this</b>. Not the $1, not ${sale.buyer}, not ${sale.seller}.</p>` +
-          valLink(r.nostrGuruUrl, 'open the message — see only ciphertext') + valLink(r.njumpUrl, 'view on njump.me') +
-          `<div class="fine">event ${trunc(r.nostrEventId, 7)} · ${r.consignmentBytes.toLocaleString()} bytes, encrypted inline</div></div>`
-
-        const rgb =
-          `<div class="art"><div class="ah"><h3>The consignment</h3><span class="badge priv">PRIVATE · CLIENT-SIDE</span></div>` +
-          `<p class="proves">In a marketplace, a <b>consignment</b> is goods handed over to be sold. Here it's the cryptographic proof of the dollar — ${r.contract.ticker}, ${r.contract.name} — and it lives only on ${sale.buyer}'s and ${sale.seller}'s devices, never on a server. There is no explorer to link, and that is the privacy.</p>` +
-          valText(r.contractId) + `</div>`
-
-        $('#arts').innerHTML = bitcoin + nostr + rgb
-        $('#honesty').textContent = `${sale.buyer}, ${sale.seller}, and the ${sale.item} are an illustration to make this concrete. The Bitcoin transaction, the Nostr message, and the consignment above are 100% real — go check them.`
-        $('#arts').querySelectorAll('.copy').forEach((el) =>
-          el.addEventListener('click', () => { navigator.clipboard?.writeText(el.dataset.copy); const t = el.textContent; el.textContent = 'copied'; setTimeout(() => (el.textContent = t), 1100) }))
-        const badge = $('#arts').querySelector('.confbadge')
-        if (badge) pollConfirmation(r.bitcoinTxid, badge)
+      function bindResultActions() {
+        document.querySelectorAll('.copy').forEach(el=>el.addEventListener('click',()=>{ navigator.clipboard?.writeText(el.dataset.copy); const t=el.textContent; el.textContent='copied'; setTimeout(()=>el.textContent=t,1100) }))
+        const badge = document.querySelector('.confbadge')
+        if (badge && ST.result) pollConfirmation(ST.result.bitcoinTxid, badge)
+        const sort = $('#sort'); if (sort) sort.addEventListener('change', e=>{ ST.sort=e.target.value; render() })
       }
 
       async function pollConfirmation(txid, badge) {
-        const api = CFG.explorerApi
-        if (!api) { badge.remove(); return }
-        for (let i = 0; i < 40; i++) {
+        const api = CFG.explorerApi; if (!api) { badge.remove(); return }
+        for (let i=0;i<40;i++) {
           try {
             const s = await (await fetch(`${api}/tx/${txid}/status`)).json()
-            if (s.confirmed) { badge.className = 'confbadge done'; badge.textContent = `confirmed · block ${s.block_height.toLocaleString()}`; return }
+            if (s.confirmed) { badge.className='confbadge done'; badge.textContent=`confirmed · block ${s.block_height.toLocaleString()}`; return }
             badge.textContent = 'settling on Bitcoin…'
-          } catch { /* keep trying */ }
-          await new Promise((r) => setTimeout(r, 6000))
+          } catch {}
+          await new Promise(r=>setTimeout(r,6000))
         }
       }
 
-      async function showExample() {
-        try {
-          const res = await fetch('/last'); if (res.status !== 200) return false
-          const r = await res.json()
-          setSale(pickSale(hashStr(r.bitcoinTxid)), true)
-          $('#run').textContent = 'Make another sale'
-          renderResult(r, true)
-          return true
-        } catch { return false }
-      }
+      // ---------- actions ----------
+      function open(id) { ST.activeId=id; ST.screen='product'; render(true) }
+      function go(screen) { ST.screen=screen; render(true) }
+      function save(id) { const i=ST.saved.indexOf(id); if(i<0){ST.saved.push(id);toast('Saved to your list')} else ST.saved.splice(i,1); render() }
+      function addCart(id){ ST.cart[id]=(ST.cart[id]||0)+1; render() }
 
-      async function run() {
-        setSale(pickSale(hashStr(String(Date.now()) + Math.random())), false)
-        $('#run').disabled = true
-        $('#run').textContent = `Paying ${active.seller}…`
-        $('#err').hidden = true
-        $('#resultwrap').hidden = true
-        const state = {}
-        $('#runh').textContent = `${active.buyer} → ${active.seller}: sending $1`
-        renderBeats(state)
-        $('#runwrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      async function pay() {
+        if (!CFG.ready) { toast('Payment rail warming up — try again in a moment'); return }
+        ST.pay = true; ST.beats = {}; render()
         let res
-        try { res = await fetch('/run', { method: 'POST' }) } catch { return fail('could not reach the orchestrator') }
-        if (!res.ok) { const b = await res.json().catch(() => ({})); return fail(b.error || `request failed (${res.status})`) }
+        try { res = await fetch('/run',{method:'POST'}) } catch { ST.pay=null; toast('Could not reach the payment rail'); render(); return }
+        if (!res.ok) { const b=await res.json().catch(()=>({})); ST.pay=null; toast(b.error||'Payment failed'); render(); return }
         const { jobId } = await res.json()
-        const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+        const proto = location.protocol==='https:'?'wss':'ws'
         const ws = new WebSocket(`${proto}://${location.host}/run/${jobId}/stream`)
         ws.onmessage = (m) => {
           const msg = JSON.parse(m.data)
-          if (msg.type === 'progress') { if (msg.event.step !== 'start') { state[msg.event.step] = msg.event.status; renderBeats(state) } }
-          else if (msg.type === 'result') { setSale(active, true); renderResult(msg.result, false); done() }
-          else if (msg.type === 'error') { fail(msg.error) }
+          if (msg.type==='progress') { if (msg.event.step!=='start'){ ST.beats[msg.event.step]=msg.event.status; if(ST.screen==='checkout') render() } }
+          else if (msg.type==='result') { ST.result = {...msg.result, _product: prod(ST.activeId)}; ST.pay=null; ST.screen='receipt'; render(true) }
+          else if (msg.type==='error') { ST.pay=null; toast('Payment failed: '+msg.error); render() }
         }
-        ws.onerror = () => fail('the payment stream dropped')
+        ws.onerror = () => { ST.pay=null; toast('The payment stream dropped'); render() }
       }
-      function done() { $('#run').disabled = false; $('#run').textContent = 'Make another sale' }
-      function fail(message) { $('#err').hidden = false; $('#err').textContent = 'Payment failed: ' + message; done() }
 
-      $('#run').addEventListener('click', run)
-      ;(async () => {
-        const ready = await health()
-        if (!ready) return
-        const hadExample = await showExample()
-        if (!hadExample) setSale(pickSale(hashStr(String(Date.now()))), false)
-      })()
+      document.addEventListener('click', (e) => {
+        const t = e.target.closest('[data-act]'); if (!t) return
+        const act = t.dataset.act, id = t.dataset.id ? +t.dataset.id : null
+        if (act!=='save'&&act!=='inc'&&act!=='dec'&&act!=='rm') e.preventDefault?.()
+        switch (act) {
+          case 'home': ST.screen='home'; ST.category='All'; ST.query=''; $('#q').value=''; render(true); break
+          case 'open': open(id); break
+          case 'openback': open(id); break
+          case 'save': e.stopPropagation(); save(id); break
+          case 'cat': ST.category=t.dataset.cat; render(); break
+          case 'clear': ST.category='All'; ST.query=''; $('#q').value=''; render(); break
+          case 'saved': ST.category='__saved'; ST.query=''; ST.screen='home'; render(true); break
+          case 'sell': toast('Listing flow — coming soon in this demo'); break
+          case 'offer': toast('Offer sent to the seller'); break
+          case 'scrollfeed': document.querySelector('.catbar')?.scrollIntoView({behavior:'smooth',block:'start'}); break
+          case 'addcart': addCart(id); toast('Added to cart'); break
+          case 'buy': ST.activeId=id; ST.screen='checkout'; ST.pay=null; render(true); break
+          case 'cart': ST.drawer=true; render(); break
+          case 'closecart': ST.drawer=false; render(); break
+          case 'checkout': ST.drawer=false; ST.activeId=null; ST.screen='checkout'; ST.pay=null; render(true); break
+          case 'inc': addCart(id); break
+          case 'dec': if(ST.cart[id]>1)ST.cart[id]--; else delete ST.cart[id]; render(); break
+          case 'rm': delete ST.cart[id]; render(); break
+          case 'pay': pay(); break
+        }
+      })
+      $('#q').addEventListener('input', (e) => { ST.query=e.target.value; if(ST.screen!=='home'){ST.screen='home'} render() })
+
+      async function health() {
+        try { CFG = await (await fetch('/health')).json() } catch { CFG = {} }
+      }
+      health().then(render)
     </script>
   </body>
 </html>
