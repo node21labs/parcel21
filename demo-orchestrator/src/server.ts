@@ -52,12 +52,21 @@ let lastResult: DemoArtifacts | null = null
 let fundsCache: { totalSats: number; outpoint: string | null; at: number } | null = null
 const FUNDS_TTL_MS = 60_000
 
-async function fundsForHealth(forceSync: boolean): Promise<{ totalSats: number; outpoint: string | null }> {
-  const now = Date.now()
-  if (!forceSync && fundsCache && now - fundsCache.at < FUNDS_TTL_MS) return fundsCache
-  const f = await issuerFunds()
-  fundsCache = { ...f, at: now }
-  return f
+async function refreshFunds(): Promise<void> {
+  try {
+    const f = await issuerFunds()
+    fundsCache = { ...f, at: Date.now() }
+  } catch {
+    /* keep the stale value */
+  }
+}
+
+// Non-blocking once ready: serve the cached (or last-known) balance instantly and refresh in the
+// background. A wallet sync takes ~20s against the public indexer, so blocking /health on it made
+// page-load readiness slow and let concurrent requests pile up.
+function fundsForHealth(): { totalSats: number; outpoint: string | null } {
+  if (boot.ready && (!fundsCache || Date.now() - fundsCache.at > FUNDS_TTL_MS)) void refreshFunds()
+  return fundsCache ?? { totalSats: boot.totalSats, outpoint: null }
 }
 
 function emit(job: Job, e: ProgressEvent) {
@@ -137,11 +146,17 @@ async function main() {
     await ensureBoot()
     let funds = { totalSats: boot.totalSats, outpoint: null as string | null }
     let fundingAddress = boot.fundingAddress
-    try {
-      funds = await fundsForHealth(!boot.ready)
-      if (!boot.ready) fundingAddress = await issuerAddress()
-    } catch {
-      /* ignore */
+    if (boot.ready) {
+      funds = fundsForHealth() // instant: cached + background refresh
+    } else {
+      // pre-funding: sync inline so newly-arrived funding is detected on this call (one-time)
+      try {
+        funds = await issuerFunds()
+        fundsCache = { ...funds, at: Date.now() }
+        fundingAddress = await issuerAddress()
+      } catch {
+        /* ignore */
+      }
     }
     return {
       ready: boot.ready,

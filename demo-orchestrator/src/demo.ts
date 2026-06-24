@@ -15,6 +15,7 @@ import {
   validateConsignment,
   signAndBroadcast,
   acceptTransfer,
+  ensureIssuerReady,
   type DemoState,
 } from './rgb.ts'
 import { deliverOverRelay } from './relay.ts'
@@ -54,8 +55,10 @@ export async function runDemo(runId: string, onPhase: (e: ProgressEvent) => void
   const invoice = await makeInvoice(state.contractId)
   onPhase({ step: 'invoice', status: 'ok', data: { invoice } })
 
-  // 2. sender builds the RGB transfer (real fee estimation from the public indexer)
+  // 2. sender builds the RGB transfer (real fee estimation from the public indexer).
+  // Wait for the previous payment to settle first, so the change allocation is spendable.
   onPhase({ step: 'transfer', status: 'running' })
+  await ensureIssuerReady()
   const { consignmentBytes, psbtPath } = await buildTransfer(invoice, runDir)
   onPhase({ step: 'transfer', status: 'ok', data: { bytes: consignmentBytes.length } })
 

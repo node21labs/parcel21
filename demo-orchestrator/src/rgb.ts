@@ -45,6 +45,42 @@ export async function syncIssuer(): Promise<void> {
   await rgb(issuerData(), ['utxos', '-w', config.issuerWallet, '--sync'])
 }
 
+// Each transfer spends the issuer's asset UTXO and sends the remainder to a CHANGE output. The next
+// transfer must spend that change — but until the witness tx confirms, the change isn't selectable
+// (rgb-cmd reports "state provided via PSBT inputs is not sufficient" / "missingorspent"). So we
+// remember the last broadcast and make the next run wait for it to settle before transferring again.
+let lastBroadcastTxid: string | null = null
+export function noteBroadcast(txid: string): void {
+  lastBroadcastTxid = txid
+}
+
+async function txConfirmed(txid: string): Promise<boolean> {
+  try {
+    const r = await fetch(`${config.esplora}/tx/${txid}/status`, { signal: AbortSignal.timeout(10_000) })
+    const s = (await r.json()) as { confirmed?: boolean }
+    return s.confirmed === true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Make the issuer ready to build a fresh transfer: if its previous transfer is still unconfirmed,
+ * wait for it (Mutinynet blocks are ~30s) so the change allocation becomes selectable, then re-sync.
+ * Bounded, so a stalled chain degrades to a normal failed payment rather than hanging forever.
+ */
+export async function ensureIssuerReady(): Promise<void> {
+  if (lastBroadcastTxid) {
+    const deadline = Date.now() + Number(process.env.SETTLE_TIMEOUT_MS ?? '120000')
+    while (Date.now() < deadline) {
+      if (await txConfirmed(lastBroadcastTxid)) break
+      await new Promise((r) => setTimeout(r, 5000))
+    }
+    lastBroadcastTxid = null
+  }
+  await syncIssuer()
+}
+
 // ── wallet creation ──────────────────────────────────────────────────────────
 async function ensureWallet(name: string, dataDir: string): Promise<void> {
   const derive = resolve(walletsDir(), `${name}.derive`)
@@ -185,7 +221,9 @@ export async function signAndBroadcast(psbtPath: string, runDir: string): Promis
   const out = `${stdout}\n${stderr}`
   if (!/Publishing transaction.*success/i.test(out)) throw new Error(`broadcast did not report success:\n${out}`)
   if (!existsSync(txPath)) throw new Error('finalize did not write the signed tx')
-  return Transaction.fromBuffer(readFileSync(txPath)).getId()
+  const txid = Transaction.fromBuffer(readFileSync(txPath)).getId()
+  noteBroadcast(txid) // the next transfer must wait for this to confirm before spending the change
+  return txid
 }
 
 /** Recipient accepts the transfer into its stash (best-effort; tx may still be unconfirmed). */
