@@ -3,110 +3,304 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Parcel21 — live RGB transfer over Nostr</title>
+    <title>Parcel21 — private RGB transfers over Nostr</title>
+    <meta name="description" content="A live demo: a real RGB asset transfer handed off over encrypted Nostr instead of a centralized proxy, settled on Bitcoin — with links you can verify yourself." />
     <style>
       :root {
-        --bg: #0b0d10; --panel: #14181d; --panel2: #1b2026; --line: #283039;
-        --fg: #e7edf3; --mut: #8b97a3; --acc: #f7931a; --grn: #35c46a; --red: #ef5b5b; --blu: #5b9bef;
+        --bg: #0a0c0f; --panel: #13171c; --panel2: #1a2027; --line: #29323c; --line2: #36424f;
+        --fg: #eef2f6; --mut: #8e9aa7; --mut2: #6b7682; --acc: #f7931a; --acc-dim: #5a4216;
+        --grn: #34c66a; --red: #ef5b5b; --blu: #5ea0f2; --vio: #9b8cff;
         --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
       * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
       body {
-        margin: 0; background: radial-gradient(1200px 600px at 50% -10%, #161b22 0%, var(--bg) 60%);
-        color: var(--fg); font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        min-height: 100vh; padding: 40px 20px;
+        margin: 0; color: var(--fg); font-family: var(--sans); font-size: 15.5px; line-height: 1.6;
+        background:
+          radial-gradient(900px 500px at 50% -8%, rgba(247,147,26,0.10), transparent 60%),
+          radial-gradient(700px 500px at 100% 0%, rgba(94,160,242,0.06), transparent 55%),
+          var(--bg);
+        min-height: 100vh;
       }
-      .wrap { max-width: 760px; margin: 0 auto; }
-      h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
-      h1 .o { color: var(--acc); }
-      .sub { color: var(--mut); margin: 0 0 24px; }
-      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 18px; }
-      .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--mut); font-size: 13px; margin-bottom: 18px; }
-      .meta b { color: var(--fg); font-weight: 600; }
-      .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 6px; }
-      .dot.ok { background: var(--grn); } .dot.warn { background: var(--acc); } .dot.bad { background: var(--red); }
-      button {
-        appearance: none; border: 0; border-radius: 11px; padding: 15px 22px; width: 100%;
-        background: linear-gradient(180deg, #ffa733, var(--acc)); color: #1a1205; font-size: 16px; font-weight: 700;
-        cursor: pointer; transition: filter .15s, transform .05s;
+      a { color: var(--blu); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .wrap { max-width: 840px; margin: 0 auto; padding: 0 20px 64px; }
+
+      /* top bar */
+      .top { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 8px; }
+      .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 18px; }
+      .brand .o { color: var(--acc); }
+      .top .links { display: flex; gap: 16px; font-size: 13.5px; }
+      .top .links a { color: var(--mut); }
+      .top .links a:hover { color: var(--fg); }
+
+      /* hero */
+      .hero { padding: 30px 0 8px; }
+      h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 16px; font-weight: 800; }
+      h1 .grad { background: linear-gradient(90deg, var(--acc), #ffba5c); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .lede { font-size: clamp(15.5px, 2.4vw, 18px); color: var(--mut); margin: 0; max-width: 640px; }
+      .lede b { color: var(--fg); font-weight: 600; }
+
+      /* status chips */
+      .status { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; }
+      .chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--mut);
+              background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+      .chip b { color: var(--fg); font-weight: 600; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mut2); flex: 0 0 auto; }
+      .dot.ok { background: var(--grn); box-shadow: 0 0 0 3px rgba(52,198,106,0.18); }
+      .dot.warn { background: var(--acc); box-shadow: 0 0 0 3px rgba(247,147,26,0.18); }
+      .dot.bad { background: var(--red); }
+
+      /* flow diagram */
+      .flow { margin: 26px 0 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px 16px; }
+      .flow svg { width: 100%; height: auto; display: block; }
+      .flow .cap { color: var(--mut); font-size: 12.5px; text-align: center; margin-top: 10px; }
+      .flow .cap b { color: var(--acc); font-weight: 600; }
+
+      /* primary action */
+      .cta { margin: 24px 0 6px; }
+      button.run {
+        appearance: none; border: 0; border-radius: 13px; padding: 16px 22px; width: 100%;
+        background: linear-gradient(180deg, #ffb24d, var(--acc)); color: #1a1205; font-size: 16.5px; font-weight: 750;
+        cursor: pointer; transition: filter .15s, transform .04s, box-shadow .15s; box-shadow: 0 8px 30px rgba(247,147,26,0.22);
       }
-      button:hover { filter: brightness(1.06); } button:active { transform: translateY(1px); }
-      button:disabled { background: #2a2f36; color: var(--mut); cursor: not-allowed; filter: none; }
-      .warn-box { background: #241c0d; border: 1px solid #503c12; border-radius: 11px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; }
-      .warn-box a { color: var(--acc); }
-      .steps { list-style: none; margin: 18px 0 0; padding: 0; }
-      .steps li { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-bottom: 1px solid #1d232a; color: var(--mut); }
-      .steps li:last-child { border-bottom: 0; }
-      .steps li.run { color: var(--fg); } .steps li.ok { color: var(--fg); } .steps li.err { color: var(--red); }
-      .ic { width: 20px; height: 20px; flex: 0 0 20px; border-radius: 50%; border: 2px solid #303841; display: grid; place-items: center; font-size: 12px; }
-      .steps li.ok .ic { background: var(--grn); border-color: var(--grn); color: #07210f; }
-      .steps li.err .ic { background: var(--red); border-color: var(--red); color: #2a0a0a; }
+      button.run:hover { filter: brightness(1.05); }
+      button.run:active { transform: translateY(1px); }
+      button.run:disabled { background: #232931; color: var(--mut2); cursor: not-allowed; box-shadow: none; }
+      .cta .sub { color: var(--mut2); font-size: 12.5px; text-align: center; margin-top: 10px; }
+      .warn-box { background: #221a0c; border: 1px solid #4a3814; border-radius: 12px; padding: 13px 15px; margin: 14px 0; font-size: 13.5px; color: #e7d6b6; }
+      .warn-box code { font-family: var(--mono); font-size: 12px; color: var(--acc); word-break: break-all; }
+
+      /* section heading */
+      .sec-h { display: flex; align-items: baseline; gap: 10px; margin: 34px 0 12px; }
+      .sec-h h2 { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mut); margin: 0; font-weight: 700; }
+      .sec-h .tag { font-size: 11px; color: var(--acc); border: 1px solid var(--acc-dim); border-radius: 999px; padding: 1px 9px; }
+
+      /* steps */
+      .steps { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+      .steps li { display: flex; align-items: center; gap: 13px; padding: 12px 16px; border-bottom: 1px solid #1b212808; }
+      .steps li + li { border-top: 1px solid #1a2026; }
+      .steps li .ic { width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; border: 2px solid #313b45; display: grid; place-items: center; font-size: 12px; color: transparent; }
+      .steps li .tx { display: flex; flex-direction: column; }
+      .steps li .lab { color: var(--mut); font-size: 14.5px; }
+      .steps li .meta { color: var(--mut2); font-size: 11.5px; font-family: var(--mono); }
+      .steps li.run .lab { color: var(--fg); }
       .steps li.run .ic { border-color: var(--acc); border-right-color: transparent; animation: spin .8s linear infinite; }
+      .steps li.ok .lab { color: var(--fg); }
+      .steps li.ok .ic { background: var(--grn); border-color: var(--grn); color: #06210f; }
+      .steps li.err .lab { color: var(--red); }
+      .steps li.err .ic { background: var(--red); border-color: var(--red); color: #2a0a0a; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      .artifacts { display: grid; gap: 14px; margin-top: 6px; }
-      .art { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-      .art h3 { margin: 0 0 4px; font-size: 14px; } .art .k { color: var(--mut); font-size: 12.5px; margin-bottom: 10px; }
-      .val { font-family: var(--mono); font-size: 13px; background: #0d1014; border: 1px solid var(--line); border-radius: 8px;
-             padding: 10px 12px; word-break: break-all; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
-      .val a { color: var(--blu); text-decoration: none; } .val a:hover { text-decoration: underline; }
-      .copy { cursor: pointer; color: var(--mut); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 11px; flex: 0 0 auto; }
-      .copy:hover { color: var(--fg); }
-      .pill { display: inline-block; font-size: 11px; color: var(--acc); border: 1px solid #503c12; border-radius: 999px; padding: 1px 8px; margin-left: 6px; }
-      .note { color: var(--mut); font-size: 12.5px; margin-top: 9px; }
-      .links a { color: var(--blu); } footer { color: var(--mut); font-size: 12.5px; text-align: center; margin-top: 8px; }
+
+      /* result */
+      .outcome { display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, rgba(52,198,106,0.10), rgba(52,198,106,0.03)); border: 1px solid rgba(52,198,106,0.3); border-radius: 14px; padding: 15px 18px; margin-bottom: 14px; }
+      .outcome .check { width: 26px; height: 26px; flex: 0 0 26px; border-radius: 50%; background: var(--grn); color: #06210f; display: grid; place-items: center; font-weight: 800; }
+      .outcome .t { font-size: 16px; font-weight: 650; }
+      .outcome .s { color: var(--mut); font-size: 12.5px; }
+      .ex-tag { margin-left: auto; font-size: 11px; color: var(--mut2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; flex: 0 0 auto; }
+
+      .arts { display: grid; gap: 12px; }
+      .art { background: var(--panel2); border: 1px solid var(--line); border-radius: 13px; padding: 16px; }
+      .art .ah { display: flex; align-items: center; gap: 9px; margin-bottom: 4px; }
+      .art h3 { margin: 0; font-size: 14.5px; font-weight: 650; }
+      .art .badge { font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; }
+      .badge.chain { color: var(--acc); background: rgba(247,147,26,0.12); }
+      .badge.enc { color: var(--vio); background: rgba(155,140,255,0.13); }
+      .badge.priv { color: var(--blu); background: rgba(94,160,242,0.12); }
+      .art .proves { color: var(--mut); font-size: 12.8px; margin: 0 0 11px; }
+      .val { font-family: var(--mono); font-size: 12.5px; background: #0c0f13; border: 1px solid var(--line); border-radius: 9px;
+             padding: 9px 11px; display: flex; align-items: center; gap: 10px; justify-content: space-between; word-break: break-all; }
+      .val + .val { margin-top: 7px; }
+      .val a { color: var(--blu); }
+      .copy { cursor: pointer; color: var(--mut2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; font-size: 11px; flex: 0 0 auto; user-select: none; }
+      .copy:hover { color: var(--fg); border-color: var(--line2); }
+      .confbadge { font-size: 11.5px; font-family: var(--mono); padding: 2px 9px; border-radius: 999px; flex: 0 0 auto; }
+      .confbadge.pending { color: var(--acc); background: rgba(247,147,26,0.12); }
+      .confbadge.done { color: var(--grn); background: rgba(52,198,106,0.13); }
+      .art .fine { color: var(--mut2); font-size: 11.5px; margin-top: 9px; }
       .err-msg { color: var(--red); font-size: 13.5px; margin-top: 12px; }
+
+      /* developer layer */
+      details.dev { margin-top: 30px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+      details.dev > summary { cursor: pointer; list-style: none; padding: 15px 18px; font-weight: 650; font-size: 14.5px; display: flex; align-items: center; gap: 10px; }
+      details.dev > summary::-webkit-details-marker { display: none; }
+      details.dev > summary .chev { color: var(--mut2); transition: transform .2s; margin-left: auto; }
+      details.dev[open] > summary .chev { transform: rotate(90deg); }
+      details.dev > summary .sub { color: var(--mut2); font-weight: 400; font-size: 12.5px; }
+      .dev-body { padding: 4px 18px 20px; border-top: 1px solid var(--line); }
+      .dev-body h4 { margin: 18px 0 8px; font-size: 13px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--mut); }
+      .dev-body p { color: var(--mut); font-size: 13.5px; margin: 0 0 8px; }
+      .map { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .map td { padding: 7px 10px; border-bottom: 1px solid #1b2229; vertical-align: top; color: var(--mut); }
+      .map td:first-child { font-family: var(--mono); color: var(--fg); white-space: nowrap; font-size: 12px; }
+      .sec-note { background: #1c1410; border: 1px solid #43321a; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #e2d3b8; }
+      .sec-note b { color: var(--acc); }
+
+      footer { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--mut2); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+      footer a { color: var(--mut); }
+      footer .spacer { flex: 1; }
+
+      @media (max-width: 560px) {
+        .wrap { padding: 0 14px 48px; }
+        .flow { padding: 16px 12px 12px; }
+        .top .links { gap: 12px; }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <h1>Parcel<span class="o">21</span> — live transfer</h1>
-      <p class="sub">One click runs a <b>real RGB asset transfer</b>, hands the consignment off over the
-        <b>Parcel21 / Nostr</b> relay (not a centralized proxy), and settles on a public Bitcoin network —
-        returning links you can verify yourself.</p>
-
-      <div class="card">
-        <div class="meta" id="meta">
-          <span><span class="dot warn"></span>connecting…</span>
+      <div class="top">
+        <div class="brand">Parcel<span class="o">21</span></div>
+        <div class="links">
+          <a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">GitHub</a>
+          <a href="#how">How it works</a>
         </div>
-        <div id="fund"></div>
-        <button id="run" disabled>Checking demo status…</button>
-        <ul class="steps" id="steps" hidden></ul>
+      </div>
+
+      <section class="hero">
+        <h1>RGB asset transfers <span class="grad">no one can read or block</span></h1>
+        <p class="lede">
+          To complete an RGB transfer, the sender must hand the receiver a <b>consignment</b> — and today that
+          hand-off runs through centralized proxy servers that can read it and censor it. Parcel21 moves it onto
+          <b>Nostr</b>, encrypted end-to-end: the relay sees only ciphertext, the receiver is pushed the data in
+          real time, and <b>anyone can run a relay</b>. This page runs a real one and hands you the receipts.
+        </p>
+
+        <div class="status" id="status">
+          <span class="chip"><span class="dot warn"></span>connecting…</span>
+        </div>
+
+        <div class="flow" id="how">
+          <svg viewBox="0 0 700 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sender gift-wraps a consignment to a Nostr relay that sees only ciphertext; the receiver is pushed the encrypted data, validates it, and ACKs; the sender then settles a Bitcoin transaction.">
+            <defs>
+              <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#5b6672" />
+              </marker>
+              <marker id="arrg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#f7931a" />
+              </marker>
+            </defs>
+            <!-- nodes -->
+            <g font-family="var(--sans)" text-anchor="middle">
+              <rect x="8" y="40" width="150" height="56" rx="11" fill="#1a2027" stroke="#36424f"/>
+              <text x="83" y="64" fill="#eef2f6" font-size="14" font-weight="600">Sender</text>
+              <text x="83" y="82" fill="#8e9aa7" font-size="11">builds the transfer</text>
+
+              <rect x="275" y="34" width="150" height="68" rx="11" fill="#171a13" stroke="#4a3814"/>
+              <text x="350" y="58" fill="#f7931a" font-size="14" font-weight="700">Nostr relay</text>
+              <text x="350" y="76" fill="#8e9aa7" font-size="11">sees only ciphertext</text>
+              <text x="350" y="90" fill="#8e9aa7" font-size="11">anyone can run one</text>
+
+              <rect x="542" y="40" width="150" height="56" rx="11" fill="#1a2027" stroke="#36424f"/>
+              <text x="617" y="64" fill="#eef2f6" font-size="14" font-weight="600">Receiver</text>
+              <text x="617" y="82" fill="#8e9aa7" font-size="11">validates &amp; owns it</text>
+            </g>
+            <!-- wires -->
+            <g font-family="var(--sans)" font-size="11" text-anchor="middle">
+              <line x1="160" y1="60" x2="271" y2="60" stroke="#f7931a" stroke-width="2" marker-end="url(#arrg)"/>
+              <text x="215" y="50" fill="#f7931a" font-weight="600">🔒 gift-wrap</text>
+              <line x1="427" y1="60" x2="540" y2="60" stroke="#f7931a" stroke-width="2" marker-end="url(#arrg)"/>
+              <text x="484" y="50" fill="#f7931a" font-weight="600">push</text>
+              <text x="350" y="124" fill="#8e9aa7">authenticated ACK ←</text>
+              <line x1="540" y1="130" x2="161" y2="130" stroke="#5b6672" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arr)"/>
+            </g>
+            <!-- settle -->
+            <g font-family="var(--sans)" text-anchor="middle">
+              <line x1="350" y1="142" x2="350" y2="158" stroke="#5b6672" stroke-width="1.5" marker-end="url(#arr)"/>
+              <rect x="250" y="158" width="200" height="28" rx="9" fill="#13171c" stroke="#29323c"/>
+              <text x="350" y="177" fill="#cfd6dd" font-size="12">↳ settles in a Bitcoin tx</text>
+            </g>
+          </svg>
+          <div class="cap">The relay is just an encrypted mailbox — it never learns the asset, the amount, or who is transacting. <b>That's the point.</b></div>
+        </div>
+
+        <div class="cta">
+          <div id="fund"></div>
+          <button class="run" id="run" disabled>Checking demo status…</button>
+          <div class="sub" id="ctasub">Every artifact it produces is independently verifiable on public infrastructure.</div>
+        </div>
         <div class="err-msg" id="err" hidden></div>
+      </section>
+
+      <!-- live run checklist -->
+      <div id="runwrap" hidden>
+        <div class="sec-h"><h2>Live run</h2></div>
+        <ul class="steps" id="steps"></ul>
       </div>
 
-      <div class="card" id="result" hidden>
-        <h3 style="margin:0 0 14px">Verifiable artifacts</h3>
-        <div class="artifacts" id="artifacts"></div>
+      <!-- result / example -->
+      <div id="resultwrap" hidden>
+        <div class="sec-h"><h2 id="resh">Result</h2></div>
+        <div id="outcome"></div>
+        <div class="arts" id="arts"></div>
       </div>
 
-      <footer>RC/alpha tooling, test network only — no real-value assets. <span id="foot"></span></footer>
+      <!-- developer layer -->
+      <details class="dev">
+        <summary>For developers <span class="sub">— the protocol, event kinds, and the security model</span> <span class="chev">›</span></summary>
+        <div class="dev-body">
+          <h4>Drop-in for the RGB proxy protocol</h4>
+          <p>Parcel21 mirrors <a href="https://github.com/RGB-Tools/rgb-http-json-rpc" target="_blank" rel="noopener">RGB HTTP JSON-RPC</a> so wallets can adopt it as an alternative transport. Each method maps to a Nostr mechanism:</p>
+          <table class="map">
+            <tr><td>consignment.post</td><td>Sender gift-wraps the consignment to the receiver (kind 1059)</td></tr>
+            <tr><td>consignment.get</td><td>Receiver subscribes for gift wraps addressed to it and unwraps</td></tr>
+            <tr><td>ack.post</td><td>Receiver gift-wraps an ACK to the sender's per-transfer reply key</td></tr>
+            <tr><td>ack.get</td><td>Sender is pushed the ACK — no polling</td></tr>
+          </table>
+
+          <h4>Encryption &amp; transport</h4>
+          <p>Payloads are encrypted with NIP-44 and wrapped with NIP-59 gift wrap, addressed to an ephemeral key — so the relay sees an opaque blob, not the contents or the real parties. Small consignments ride inline; larger ones go to encrypted Blossom storage referenced inside the wrap.</p>
+
+          <h4>Security model</h4>
+          <p class="sec-note"><b>Authenticated unwrap (a normative MUST).</b> A naive gift-wrap unwrap does two decryptions and <b>no</b> authentication — so a forged wrap could fake an ACK and trigger a Bitcoin broadcast. Parcel21 verifies the seal signature, binds the seal's key to the rumor author, and recomputes the rumor id on every unwrap, and only broadcasts the witness tx <b>after</b> a verified ACK. You can watch that ordering in the live run above.</p>
+
+          <h4>Read the source</h4>
+          <p>
+            <a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">Repository</a> ·
+            <a href="https://github.com/node21labs/parcel21/blob/main/docs/architecture.md" target="_blank" rel="noopener">Architecture</a> ·
+            <a href="https://github.com/node21labs/parcel21/tree/main/spec" target="_blank" rel="noopener">The NIP spec</a> ·
+            <a href="https://github.com/node21labs/parcel21/blob/main/integration/PROOF-mutinynet.md" target="_blank" rel="noopener">Reproduce this on Mutinynet</a>
+          </p>
+        </div>
+      </details>
+
+      <footer>
+        <span id="footnet">test network only — RC/alpha tooling, no real-value assets</span>
+        <span class="spacer"></span>
+        <a href="https://github.com/node21labs/parcel21" target="_blank" rel="noopener">node21labs/parcel21</a>
+        <span id="footrelay"></span>
+      </footer>
     </div>
 
     <script>
       const $ = (s) => document.querySelector(s)
+      let CFG = {}
       const STEPS = [
-        ['invoice', 'Recipient creates a witness invoice'],
-        ['transfer', 'Sender builds the RGB transfer (consignment + PSBT)'],
-        ['deliver', 'Gift-wrap the consignment → publish to the relay'],
-        ['received', 'Receiver gets the encrypted consignment over Nostr'],
-        ['validate', 'Receiver runs rgb validate'],
-        ['ack', 'Authenticated ACK returns to the sender'],
-        ['broadcast', 'Broadcast the Bitcoin witness transaction'],
-        ['accept', 'Receiver accepts — now owns the asset'],
+        ['invoice', 'Receiver requests the asset', 'witness invoice'],
+        ['transfer', 'Sender prepares the transfer', 'RGB consignment + PSBT'],
+        ['deliver', 'Encrypt and send over Nostr', 'NIP-59 gift-wrap → relay'],
+        ['received', 'Receiver gets it — encrypted', 'relay saw only ciphertext'],
+        ['validate', 'Receiver checks the asset is real', 'rgb validate'],
+        ['ack', 'Receiver confirms back to the sender', 'authenticated ACK'],
+        ['broadcast', 'Settle on Bitcoin', 'witness tx broadcast'],
+        ['accept', 'Receiver now owns the asset', 'accepted into stash'],
       ]
-      const trunc = (s, n = 10) => (s && s.length > n * 2 ? s.slice(0, n) + '…' + s.slice(-n) : s)
+      const trunc = (s, n = 9) => (s && s.length > n * 2 ? s.slice(0, n) + '…' + s.slice(-n) : s || '')
 
       async function health() {
         try {
           const h = await (await fetch('/health')).json()
+          CFG = h
           const dot = h.ready ? (h.lowBalance ? 'warn' : 'ok') : 'warn'
-          $('#meta').innerHTML =
-            `<span><span class="dot ${dot}"></span>${h.ready ? 'ready' : 'warming up'}</span>` +
-            `<span>network <b>${h.networkLabel || h.network}</b></span>` +
-            (h.contract ? `<span>asset <b>${h.contract.ticker}</b></span>` : '') +
-            `<span>relay <b>${(h.relay || '').replace('wss://', '')}</b></span>` +
-            (h.ready ? `<span>issuer <b>${h.issuerSats.toLocaleString()} ṩ</b></span>` : '')
-          $('#foot').textContent = h.relay ? 'relay ' + h.relay : ''
+          $('#status').innerHTML =
+            `<span class="chip"><span class="dot ${dot}"></span>${h.ready ? 'live' : 'warming up'}</span>` +
+            `<span class="chip">network <b>${h.networkLabel || h.network}</b></span>` +
+            (h.contract ? `<span class="chip">asset <b>${h.contract.ticker}</b></span>` : '') +
+            `<span class="chip">relay <b>${(h.relay || '').replace('wss://', '')}</b></span>` +
+            (h.ready ? `<span class="chip">issuer <b>${h.issuerSats.toLocaleString()} ṩ</b></span>` : '')
+          $('#footrelay').textContent = h.relay ? `· relay ${h.relay}` : ''
+          $('#footnet').textContent = `${h.networkLabel || h.network} · test network only — RC/alpha tooling, no real-value assets`
           if (h.ready) {
             $('#run').disabled = false
             $('#run').textContent = 'Run a real RGB transfer over Nostr'
@@ -118,76 +312,103 @@
             $('#run').textContent = 'Demo warming up…'
             if (h.fundingAddress)
               $('#fund').innerHTML =
-                `<div class="warn-box">The issuer wallet needs a one-time funding. Send test sats to ` +
-                `<code>${h.fundingAddress}</code> via <a href="https://faucet.mutinynet.com" target="_blank" rel="noopener">faucet.mutinynet.com</a>, then reload.</div>`
+                `<div class="warn-box">One-time setup: the issuer wallet needs test sats. Send to <code>${h.fundingAddress}</code> via ` +
+                `<a href="https://faucet.mutinynet.com" target="_blank" rel="noopener">faucet.mutinynet.com</a>, then reload.</div>`
           }
-          return h.ready
-        } catch (e) {
-          $('#meta').innerHTML = `<span><span class="dot bad"></span>orchestrator unreachable</span>`
-          return false
+        } catch {
+          $('#status').innerHTML = `<span class="chip"><span class="dot bad"></span>orchestrator unreachable</span>`
         }
       }
 
       function renderSteps(state) {
-        $('#steps').hidden = false
-        $('#steps').innerHTML = STEPS.map(([k, label]) => {
+        $('#runwrap').hidden = false
+        $('#steps').innerHTML = STEPS.map(([k, lab, meta]) => {
           const st = state[k] || ''
           const cls = st === 'ok' ? 'ok' : st === 'error' ? 'err' : st === 'running' ? 'run' : ''
           const ic = st === 'ok' ? '✓' : st === 'error' ? '✕' : ''
-          return `<li class="${cls}"><span class="ic">${ic}</span><span>${label}</span></li>`
+          return `<li class="${cls}"><span class="ic">${ic}</span><span class="tx"><span class="lab">${lab}</span><span class="meta">${meta}</span></span></li>`
         }).join('')
       }
 
-      function artifact(title, klass, keyline, inner, note) {
-        return `<div class="art"><h3>${title}${klass ? `<span class="pill">${klass}</span>` : ''}</h3>` +
-          `<div class="k">${keyline}</div>${inner}${note ? `<div class="note">${note}</div>` : ''}</div>`
-      }
       function valLink(href, text) {
-        return `<div class="val"><a href="${href}" target="_blank" rel="noopener">${text}</a>` +
-          `<span class="copy" data-copy="${href}">copy</span></div>`
+        return `<div class="val"><a href="${href}" target="_blank" rel="noopener">${text}</a><span class="copy" data-copy="${href}">copy</span></div>`
       }
       function valText(text) {
         return `<div class="val"><span>${text}</span><span class="copy" data-copy="${text}">copy</span></div>`
       }
 
-      function renderResult(r) {
-        $('#result').hidden = false
-        $('#artifacts').innerHTML =
-          artifact('Bitcoin witness transaction', 'on-chain', 'The RGB transfer commits to this Bitcoin tx on Mutinynet.',
-            valLink(r.explorerUrl, trunc(r.bitcoinTxid, 12))) +
-          artifact('Nostr gift wrap', 'kind 1059', 'The consignment, NIP-44 encrypted and gift-wrapped, on a public relay.',
-            valLink(r.nostrGuruUrl, 'view on nostr.guru') +
-            `<div style="height:8px"></div>` + valLink(r.njumpUrl, 'view on njump.me') +
-            `<div class="note">event id <span style="font-family:var(--mono)">${trunc(r.nostrEventId, 8)}</span> · consignment ${r.consignmentBytes.toLocaleString()} bytes (inline)</div>`,
-            '') +
-          artifact('RGB contract', 'client-side', `${r.contract.ticker} · ${r.contract.name} · supply ${r.contract.supply} · sent ${r.sendAmount}`,
-            valText(r.contractId),
-            'RGB contracts are client-side validated; contract data never goes on-chain, so there is no explorer to link.')
-        $('#artifacts').querySelectorAll('.copy').forEach((el) =>
+      function renderResult(r, isExample) {
+        $('#resultwrap').hidden = false
+        $('#resh').textContent = isExample ? 'Most recent transfer' : 'Result'
+        $('#outcome').innerHTML =
+          `<div class="outcome"><span class="check">✓</span>` +
+          `<div><div class="t">Receiver now owns ${r.sendAmount} ${r.contract.ticker}</div>` +
+          `<div class="s">Transferred end-to-end over Nostr and settled on Bitcoin — no proxy server involved.</div></div>` +
+          (isExample ? `<span class="ex-tag">example · last run</span>` : '') + `</div>`
+
+        const bitcoin =
+          `<div class="art"><div class="ah"><h3>Bitcoin settlement</h3><span class="badge chain">REAL · ON-CHAIN</span></div>` +
+          `<p class="proves">A genuine Bitcoin transaction settles the transfer. Verify it on a public explorer — this can't be faked.</p>` +
+          `<div class="val"><a href="${r.explorerUrl}" target="_blank" rel="noopener">${trunc(r.bitcoinTxid, 12)}</a>` +
+          `<span class="confbadge pending" data-txid="${r.bitcoinTxid}">checking…</span></div></div>`
+
+        const nostr =
+          `<div class="art"><div class="ah"><h3>Nostr gift wrap</h3><span class="badge enc">ENCRYPTED · KIND 1059</span></div>` +
+          `<p class="proves">Exactly what the relay stored and served: NIP-44 ciphertext. Open it anonymously — you won't see the asset, the amount, or the parties.</p>` +
+          valLink(r.nostrGuruUrl, 'view on nostr.guru') + valLink(r.njumpUrl, 'view on njump.me') +
+          `<div class="fine">event ${trunc(r.nostrEventId, 7)} · consignment ${r.consignmentBytes.toLocaleString()} bytes, encrypted inline</div></div>`
+
+        const rgb =
+          `<div class="art"><div class="ah"><h3>RGB contract</h3><span class="badge priv">PRIVATE · CLIENT-SIDE</span></div>` +
+          `<p class="proves">${r.contract.ticker} · ${r.contract.name} · supply ${r.contract.supply}. RGB contracts are validated client-side and never published on-chain — so there is no explorer to link, and that is the privacy.</p>` +
+          valText(r.contractId) + `</div>`
+
+        $('#arts').innerHTML = bitcoin + nostr + rgb
+        $('#arts').querySelectorAll('.copy').forEach((el) =>
           el.addEventListener('click', () => {
             navigator.clipboard?.writeText(el.dataset.copy)
-            el.textContent = 'copied'
-            setTimeout(() => (el.textContent = 'copy'), 1200)
+            const t = el.textContent; el.textContent = 'copied'
+            setTimeout(() => (el.textContent = t), 1100)
           }))
+        const badge = $('#arts').querySelector('.confbadge')
+        if (badge) pollConfirmation(r.bitcoinTxid, badge)
+      }
+
+      async function pollConfirmation(txid, badge) {
+        const api = CFG.explorerApi
+        if (!api) { badge.remove(); return }
+        for (let i = 0; i < 40; i++) {
+          try {
+            const s = await (await fetch(`${api}/tx/${txid}/status`)).json()
+            if (s.confirmed) {
+              badge.className = 'confbadge done'
+              badge.textContent = `confirmed · block ${s.block_height.toLocaleString()}`
+              return
+            }
+            badge.textContent = 'in mempool · confirming…'
+          } catch { /* keep trying */ }
+          await new Promise((r) => setTimeout(r, 6000))
+        }
+      }
+
+      async function showExample() {
+        try {
+          const res = await fetch('/last')
+          if (res.status === 200) renderResult(await res.json(), true)
+        } catch { /* no example yet */ }
       }
 
       async function run() {
         $('#run').disabled = true
         $('#run').textContent = 'Running…'
-        $('#result').hidden = true
         $('#err').hidden = true
+        $('#resultwrap').hidden = true
         const state = {}
         renderSteps(state)
+        $('#runwrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         let res
-        try {
-          res = await fetch('/run', { method: 'POST' })
-        } catch (e) {
-          return fail('could not reach the orchestrator')
-        }
-        if (!res.ok) {
-          const b = await res.json().catch(() => ({}))
-          return fail(b.error || `request failed (${res.status})`)
-        }
+        try { res = await fetch('/run', { method: 'POST' }) } catch { return fail('could not reach the orchestrator') }
+        if (!res.ok) { const b = await res.json().catch(() => ({})); return fail(b.error || `request failed (${res.status})`) }
         const { jobId } = await res.json()
         const proto = location.protocol === 'https:' ? 'wss' : 'ws'
         const ws = new WebSocket(`${proto}://${location.host}/run/${jobId}/stream`)
@@ -195,26 +416,17 @@
           const msg = JSON.parse(m.data)
           if (msg.type === 'progress') {
             if (msg.event.step !== 'start') { state[msg.event.step] = msg.event.status; renderSteps(state) }
-          } else if (msg.type === 'result') {
-            renderResult(msg.result); done()
-          } else if (msg.type === 'error') {
-            fail(msg.error)
-          }
+          } else if (msg.type === 'result') { renderResult(msg.result, false); done() }
+          else if (msg.type === 'error') { fail(msg.error) }
         }
         ws.onerror = () => fail('progress stream error')
       }
-      function done() {
-        $('#run').disabled = false
-        $('#run').textContent = 'Run another transfer'
-      }
-      function fail(message) {
-        $('#err').hidden = false
-        $('#err').textContent = 'Run failed: ' + message
-        done()
-      }
+      function done() { $('#run').disabled = false; $('#run').textContent = 'Run another transfer' }
+      function fail(message) { $('#err').hidden = false; $('#err').textContent = 'Run failed: ' + message; done() }
 
       $('#run').addEventListener('click', run)
       health()
+      showExample()
     </script>
   </body>
 </html>
