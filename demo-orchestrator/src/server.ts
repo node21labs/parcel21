@@ -20,7 +20,7 @@ import websocket from '@fastify/websocket'
 import fastifyStatic from '@fastify/static'
 import type { WebSocket } from 'ws'
 import { config } from './config.ts'
-import { bootstrap, issuerFunds, issuerAddress, type BootstrapResult } from './rgb.ts'
+import { bootstrap, issuerFunds, issuerAddress, syncIssuer, type BootstrapResult } from './rgb.ts'
 import { runDemo, type ProgressEvent, type DemoArtifacts } from './demo.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -37,7 +37,7 @@ interface Job {
 }
 
 const MAX_QUEUE = Number(process.env.MAX_QUEUE ?? '5')
-const IP_COOLDOWN_MS = Number(process.env.IP_COOLDOWN_MS ?? '15000')
+const IP_COOLDOWN_MS = Number(process.env.IP_COOLDOWN_MS ?? '6000')
 
 const jobs = new Map<string, Job>()
 const queue: string[] = []
@@ -85,10 +85,22 @@ async function pump() {
   job.status = 'running'
   emit(job, { step: 'start', status: 'ok' })
   try {
-    job.result = await runDemo(id, (e) => emit(job, e))
+    try {
+      job.result = await runDemo(id, (e) => emit(job, e))
+    } catch (err) {
+      // A stale/already-spent UTXO is the one failure worth retrying: refresh the wallet once and
+      // run again. Everything else propagates to the error handler below.
+      const m = (err as Error)?.message ?? ''
+      if (!/missingorspent|bad-txns|already.{0,3}spent|insufficient/i.test(m)) throw err
+      try {
+        await syncIssuer()
+      } catch {
+        /* best effort */
+      }
+      job.result = await runDemo(id, (e) => emit(job, e))
+    }
     job.status = 'done'
     lastResult = job.result
-    fundsCache = null // balance changed; force a fresh read next /health
     try {
       writeFileSync(lastResultPath, JSON.stringify(job.result))
     } catch {

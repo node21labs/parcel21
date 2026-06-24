@@ -448,13 +448,8 @@
         const total = ST.activeId ? p.price : subtotal()
         const ship = 0
         const running = !!ST.pay
-        const beatsHTML = BEATS.map(b=>{
-          const st = beatStatus(b)
-          const ic = st==='ok'?'✓':st==='error'?'✕':''
-          return `<div class="beat ${st}"><span class="bic">${ic}</span><div><div class="bl">${b.lab(p)}</div><div class="bs">${b.sub}</div></div></div>`
-        }).join("")
         const payPanel = running
-          ? `<div class="pay"><h3 class="serif" style="font-size:20px;margin-bottom:4px">Paying ${esc(p.seller)} privately…</h3><div class="beats">${beatsHTML}</div></div>`
+          ? `<div class="pay"><h3 class="serif" style="font-size:20px;margin-bottom:4px">Paying ${esc(p.seller)} privately…</h3><div class="beats" id="beats">${beatsMarkup(p)}</div></div>`
           : `<div class="pay"><h3 class="serif" style="font-size:20px">Pay ${esc(p.seller)} directly</h3>
               <p class="lede">No card, no PayPal, no platform fee. Your payment goes <b>straight to the seller</b>, encrypted and settled on Bitcoin. The marketplace never sees the amount, the item, or who you are.</p>
               <div class="payways">
@@ -531,6 +526,18 @@
         if (s.some(x=>x==='ok'||x==='running')) return 'run'
         return ''
       }
+      function beatsMarkup(p) {
+        return BEATS.map(b=>{
+          const st = beatStatus(b)
+          const ic = st==='ok'?'✓':st==='error'?'✕':''
+          return `<div class="beat ${st}"><span class="bic">${ic}</span><div><div class="bl">${b.lab(p)}</div><div class="bs">${b.sub}</div></div></div>`
+        }).join("")
+      }
+      // Update only the beats during a payment so the page (and the product image) doesn't re-render.
+      function paintBeats() {
+        const el = document.getElementById('beats')
+        if (el && ST._payP) el.innerHTML = beatsMarkup(ST._payP)
+      }
 
       // ---------- render ----------
       function badges() {
@@ -578,18 +585,30 @@
       function addCart(id){ ST.cart[id]=(ST.cart[id]||0)+1; render() }
 
       async function pay() {
-        if (!CFG.ready) { toast('Payment rail warming up — try again in a moment'); return }
+        // No wait on /health here — the server enforces readiness on /run, so the button stays instant.
+        ST._payP = prod(ST.activeId) || cartList()[0]?.p
         ST.pay = true; ST.beats = {}; render()
-        let res
-        try { res = await fetch('/run',{method:'POST'}) } catch { ST.pay=null; toast('Could not reach the payment rail'); render(); return }
-        if (!res.ok) { const b=await res.json().catch(()=>({})); ST.pay=null; toast(b.error||'Payment failed'); render(); return }
-        const { jobId } = await res.json()
+        let jobId
+        for (let attempt = 0; attempt < 4; attempt++) {
+          let res
+          try { res = await fetch('/run', { method:'POST' }) } catch { ST.pay=null; toast('Could not reach the payment rail'); render(); return }
+          if (res.status === 429) { // finishing the previous payment — wait and retry quietly, no error
+            const b = await res.json().catch(()=>({}))
+            await new Promise(r=>setTimeout(r, Math.min(b.retryAfterMs || 4000, 8000) + 300))
+            continue
+          }
+          if (res.status === 503) { ST.pay=null; toast('Payment rail is warming up — try again in a moment'); render(); return }
+          if (!res.ok) { const b=await res.json().catch(()=>({})); ST.pay=null; toast(b.error||'Payment failed'); render(); return }
+          jobId = (await res.json()).jobId
+          break
+        }
+        if (!jobId) { ST.pay=null; toast('The payment rail is busy — try again in a moment'); render(); return }
         const proto = location.protocol==='https:'?'wss':'ws'
         const ws = new WebSocket(`${proto}://${location.host}/run/${jobId}/stream`)
         ws.onmessage = (m) => {
           const msg = JSON.parse(m.data)
-          if (msg.type==='progress') { if (msg.event.step!=='start'){ ST.beats[msg.event.step]=msg.event.status; if(ST.screen==='checkout') render() } }
-          else if (msg.type==='result') { ST.result = {...msg.result, _product: prod(ST.activeId)}; ST.pay=null; ST.screen='receipt'; render(true) }
+          if (msg.type==='progress') { if (msg.event.step!=='start'){ ST.beats[msg.event.step]=msg.event.status; if(ST.screen==='checkout') paintBeats() } }
+          else if (msg.type==='result') { ST.result = {...msg.result, _product: ST._payP}; ST.pay=null; ST.screen='receipt'; render(true) }
           else if (msg.type==='error') { ST.pay=null; toast('Payment failed: '+msg.error); render() }
         }
         ws.onerror = () => { ST.pay=null; toast('The payment stream dropped'); render() }
@@ -626,7 +645,8 @@
       async function health() {
         try { CFG = await (await fetch('/health')).json() } catch { CFG = {} }
       }
-      health().then(render)
+      render()   // render the marketplace immediately from static data — don't wait on /health
+      health()   // populate CFG (ready state, explorer API) for checkout in the background
     </script>
   </body>
 </html>

@@ -23,16 +23,26 @@ function rgbArgs(dataDir: string, rest: string[]): string[] {
   return ['-n', config.network, `--esplora=${config.esplora}`, '-d', dataDir, ...rest]
 }
 
+// A hung rgb/bp child process would otherwise freeze the whole single-threaded server. The
+// timeout sends SIGTERM and rejects, so a stuck call becomes a clean failed payment, not a freeze.
+const EXEC_TIMEOUT_MS = Number(process.env.EXEC_TIMEOUT_MS ?? '90000')
+
 async function rgb(dataDir: string, rest: string[]): Promise<{ stdout: string; stderr: string }> {
-  return exec(config.rgbBin, rgbArgs(dataDir, rest), { encoding: 'utf8', maxBuffer: MAXBUF })
+  return exec(config.rgbBin, rgbArgs(dataDir, rest), { encoding: 'utf8', maxBuffer: MAXBUF, timeout: EXEC_TIMEOUT_MS })
 }
 
 async function bpHot(args: string[]): Promise<{ stdout: string; stderr: string }> {
   return exec(config.bpHotBin, args, {
     encoding: 'utf8',
     maxBuffer: MAXBUF,
+    timeout: EXEC_TIMEOUT_MS,
     env: { ...process.env, SEED_PASSWORD: config.seedPassword },
   })
+}
+
+/** Sync the issuer wallet's UTXO set against the indexer (used to recover from a stale-UTXO failure). */
+export async function syncIssuer(): Promise<void> {
+  await rgb(issuerData(), ['utxos', '-w', config.issuerWallet, '--sync'])
 }
 
 // ── wallet creation ──────────────────────────────────────────────────────────
