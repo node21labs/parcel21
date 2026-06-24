@@ -102,7 +102,7 @@
           const dot = h.ready ? (h.lowBalance ? 'warn' : 'ok') : 'warn'
           $('#meta').innerHTML =
             `<span><span class="dot ${dot}"></span>${h.ready ? 'ready' : 'warming up'}</span>` +
-            `<span>network <b>${h.network}</b></span>` +
+            `<span>network <b>${h.networkLabel || h.network}</b></span>` +
             (h.contract ? `<span>asset <b>${h.contract.ticker}</b></span>` : '') +
             `<span>relay <b>${(h.relay || '').replace('wss://', '')}</b></span>` +
             (h.ready ? `<span>issuer <b>${h.issuerSats.toLocaleString()} ṩ</b></span>` : '')

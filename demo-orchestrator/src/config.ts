@@ -30,8 +30,11 @@ export const config = {
   schemaNia: resolve(pkgRoot, 'assets/NonInflatableAsset.rgb'),
   contractTemplate: resolve(pkgRoot, 'assets/parcel21-demo.yaml.template'),
 
-  // chain / indexer (Mutinynet defaults; swap these three for standard signet)
+  // chain / indexer (Mutinynet defaults; swap these three for standard signet).
+  // `network` is what rgb-cmd runs on (it only accepts `-n signet`; Mutinynet IS a custom signet).
+  // `networkLabel` is the human name shown in the UI, derived from the indexer so it tracks the URLs.
   network: env('BITCOIN_NETWORK', 'signet'),
+  networkLabel: env('NETWORK_LABEL', /mutinynet/i.test(env('ESPLORA_SERVER', 'https://mutinynet.com/api')) ? 'Mutinynet' : 'signet'),
   esplora: env('ESPLORA_SERVER', 'https://mutinynet.com/api'),
   explorerTx: env('EXPLORER_TX_BASE', 'https://mutinynet.com/tx'),
   faucetUrl: env('FAUCET_URL', 'https://faucet.mutinynet.com'),

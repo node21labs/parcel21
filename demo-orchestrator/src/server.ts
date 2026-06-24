@@ -111,6 +111,7 @@ async function main() {
       ready: boot.ready,
       reason: boot.reason,
       network: config.network,
+      networkLabel: config.networkLabel,
       relay: config.relay,
       explorer: config.explorerTx,
       contract: boot.state,
