@@ -1,0 +1,17 @@
+schema: schema_id
+
+globals:
+  spec:
+    ticker: USDT
+    name: USD Tether
+    details: ~
+    precision: 0
+  terms:
+    text: demo NIA asset
+    media: ~
+  issuedSupply: issued_supply
+
+assignments:
+  assetOwner:
+    seal: txid:vout
+    amount: issued_supply

@@ -1,0 +1,5 @@
+node_modules/
+data/
+*.log
+.DS_Store
+# src/_vendor/parcel21.ts is intentionally committed (vendored protocol lib; refresh via `npm run vendor`)

@@ -34,6 +34,7 @@ logs/
 
 # integration run artifacts
 /integration/last-run.log
+/integration/.mutinynet-dryrun/
 
 # --- docs/: publish only architecture.md (roadmap, overview, business, pitch stay private) ---
 /docs/*
