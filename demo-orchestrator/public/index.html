@@ -607,7 +607,16 @@
         const ws = new WebSocket(`${proto}://${location.host}/run/${jobId}/stream`)
         ws.onmessage = (m) => {
           const msg = JSON.parse(m.data)
-          if (msg.type==='progress') { if (msg.event.step!=='start'){ ST.beats[msg.event.step]=msg.event.status; if(ST.screen==='checkout') paintBeats() } }
+          if (msg.type==='progress') {
+            const ev = msg.event
+            if (ev.step!=='start') {
+              // Monotonic: a sync-and-retry re-emits the early steps, but a step that's already
+              // done must not regress to spinning. ok/error stick; running only sets if not yet ok.
+              if (ev.status==='ok' || ev.status==='error') ST.beats[ev.step]=ev.status
+              else if (ST.beats[ev.step]!=='ok') ST.beats[ev.step]='running'
+              if (ST.screen==='checkout') paintBeats()
+            }
+          }
           else if (msg.type==='result') { ST.result = {...msg.result, _product: ST._payP}; ST.pay=null; ST.screen='receipt'; render(true) }
           else if (msg.type==='error') { ST.pay=null; toast('Payment failed: '+msg.error); render() }
         }
