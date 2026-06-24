@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.DS_Store
+**/*.log
+.git
+.github
+.vscode
+.zed
+.env
+.env.*
+!**/.env.example
+references
+.claude
+.vite-hooks

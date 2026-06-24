@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+.tanstack
+.output
+.nitro
+.wrangler
+.env
+*.local
+.DS_Store
+Dockerfile
+.dockerignore

@@ -1,0 +1,4 @@
+# Generated files — excluded from formatting (oxfmt reads .prettierignore by default).
+# TanStack Router regenerates routeTree.gen.ts on every route change and it carries
+# its own /* eslint-disable */ + @ts-nocheck header, so it must not be reformatted.
+**/routeTree.gen.ts

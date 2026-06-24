@@ -1,0 +1,35 @@
+# Parcel21 local dev harness.
+#
+#   docker compose up --build relay
+#
+# Brings up the reference relay on ws://localhost:7777 with a persistent volume.
+# The client runs on the host (cd client && npm run dev) and points at this relay.
+# A Blossom server for large consignments is sketched below (enable when Milestone 3 wires it).
+
+services:
+  relay:
+    build: ./relay
+    image: parcel21-relay:dev
+    ports:
+      - "7777:7777"
+    environment:
+      PARCEL21_DB_PATH: /home/parcel21/data/parcel21.lmdb
+      PARCEL21_PORT: "7777"
+      PARCEL21_MAX_EVENT_BYTES: "262144"
+      RUST_LOG: parcel21_relay=info,nostr_relay_builder=info
+    volumes:
+      - relay-data:/home/parcel21/data
+    restart: unless-stopped
+
+  # --- Blossom blob server for large consignments (Milestone 3) ---
+  # Uncomment and pin an image once the client's Blossom path is implemented.
+  # blossom:
+  #   image: ghcr.io/hzrd149/blossom-server:latest
+  #   ports:
+  #     - "3300:3300"
+  #   volumes:
+  #     - blossom-data:/app/data
+
+volumes:
+  relay-data:
+  # blossom-data:

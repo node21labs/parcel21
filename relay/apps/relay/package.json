@@ -1,0 +1,26 @@
+{
+  "name": "@relay/app",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "test": "vp test",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "@relay/core": "workspace:*",
+    "@relay/db": "workspace:*",
+    "pino": "^10.3.1",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.25",
+    "@types/ws": "^8.18.1",
+    "drizzle-orm": "^0.45.2",
+    "nostr-tools": "^2.23.3",
+    "typescript": "~6.0.2",
+    "vite-plus": "catalog:"
+  }
+}

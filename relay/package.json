@@ -1,0 +1,39 @@
+{
+  "name": "relay",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/relay",
+    "apps/website",
+    "tools/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "ready": "vp check && vp run -r test && vp run -r build",
+    "dev": "vp run website#dev",
+    "relay": "vp run '@relay/app#dev'",
+    "relay:start": "vp run '@relay/app#start'",
+    "db:migrate": "vp run '@relay/db#db:migrate'",
+    "db:generate": "vp run '@relay/db#db:generate'",
+    "db:studio": "vp run '@relay/db#db:studio'",
+    "prepare": "vp config"
+  },
+  "devDependencies": {
+    "shadcn": "^4.11.0",
+    "vite-plus": "catalog:"
+  },
+  "overrides": {
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "bun@1.3.13",
+  "catalog": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.1.19",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.19",
+    "vite-plus": "0.1.19"
+  }
+}

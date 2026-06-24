@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: relay-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: relay
+      POSTGRES_PASSWORD: relay
+      POSTGRES_DB: relay
+    ports:
+      - "5432:5432"
+    volumes:
+      - relay-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "relay", "-d", "relay"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  relay-pg-data:

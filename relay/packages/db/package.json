@@ -1,0 +1,35 @@
+{
+  "name": "@relay/db",
+  "version": "0.0.0",
+  "description": "Postgres schema and Drizzle client for the relay.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test --passWithNoTests",
+    "check": "vp check",
+    "db:generate": "vp exec drizzle-kit generate",
+    "db:migrate": "vp exec drizzle-kit migrate",
+    "db:push": "vp exec drizzle-kit push",
+    "db:studio": "vp exec drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@typescript/native-preview": "7.0.0-dev.20260328.1",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^6.0.2",
+    "vite-plus": "^0.1.14"
+  }
+}
