@@ -52,13 +52,15 @@ RGB consignment exchange while **preserving the exact semantics** wallets alread
 
 | Key | Held by | Lifetime | Role |
 |---|---|---|---|
-| Payee identity key | Payee | long-lived | Advertised as an `npub` in the invoice; addresses consignments; signs ACK seals |
+| Payee receiving key | Payee | dedicated; MAY rotate per invoice | Advertised in the invoice; addresses consignments; signs ACK seals. A dedicated RGB key — **not** the operator's social identity (see [Key management and storage](#key-management-and-storage)) |
 | Payer seal key | Payer | **per transfer (ephemeral)** | Signs the consignment seal (`kind 13`). MUST be fresh per transfer (see [Privacy](#privacy-considerations)) |
 | Wrap key `W` | Payer & Payee | **per event (one-time)** | Signs each `kind 1059` gift wrap; random, never reused — this is what hides the sender from relays |
 | Reply key `R` | Payer | **per transfer (ephemeral)** | Its pubkey is the anonymous ACK mailbox; the only payer-side identifier on the wire, and unlinkable to the payer |
 
-A client SHOULD use a [NIP-07] signer for the payee identity key; ephemeral keys (`W`, `R`, the payer
-seal key) are generated locally per transfer and discarded after settlement.
+These are all *delivery* keys — they receive and decrypt messages but control no assets; they SHOULD
+be derived from the wallet seed and kept separate from custody keys (see
+[Key management and storage](#key-management-and-storage)). Ephemeral keys (`W`, `R`, the payer seal
+key) are generated per transfer and discarded after settlement.
 
 ## Overview of the flow
 
@@ -297,6 +299,33 @@ The proxy's JSON-RPC error space collapses, relay-less, to local outcomes: `-101
 immutability rules of §9; `-400`/`-401` → "no matching gift wrap/blob on the relay(s)"; malformed or
 unverifiable payloads → discarded per §2.1.
 
+## Key management and storage
+
+The Nostr keys in this protocol are **delivery keys, not custody keys** — they receive and decrypt
+consignment/ACK messages but control no assets. Custody stays entirely with the wallet's Bitcoin/RGB
+signing keys. That separation drives the storage model.
+
+- **Derive; don't store a new secret.** A client SHOULD derive the payee receiving key — and the
+  per-transfer `R`, seal, and `W` keys — deterministically from the wallet seed on a dedicated path
+  (one account for the receiving key; per-transfer keys at successive indices). Every key is then
+  recoverable from the seed the user already backs up, and the wallet need only persist *non-secret*
+  state (which indices have in-flight transfers). Clients MUST NOT require a separate backup of Nostr
+  key material.
+- **Dedicated, not social.** The payee receiving key SHOULD be dedicated to RGB and distinct from the
+  operator's social identity, and MAY rotate per invoice. Because it is advertised out-of-band in the
+  invoice rather than discovered by a social `npub`, a dedicated — ideally per-invoice — key maximizes
+  unlinkability (cf. on-chain Silent Payments, [BIP-352]): an observer sees consignments addressed to
+  unrelated one-time keys, with no link to a persistent identity.
+- **Hot vs. cold.** Decrypting an inbound gift wrap needs the receiving key's secret at receive time
+  ([NIP-44] ECDH), so it is necessarily a "hot" key. This is acceptable precisely because it is
+  delivery-only and value-less; custody keys SHOULD remain separate and MAY be kept cold or in
+  hardware. A client MAY instead delegate decryption to a [NIP-07]/[NIP-46] signer that performs
+  `nip44` decryption without exposing the secret.
+- **Loss and rotation lose no funds.** For future transfers the payee advertises a freshly derived
+  key. For a consignment in flight to a lost key, the payer still holds it and can re-deliver it — to
+  a new key or any other transport — so recovery is a re-request, not a loss. Restoring the wallet
+  seed re-derives all delivery keys.
+
 ## Privacy considerations
 
 | Observer | Learns | Does **not** learn |
@@ -318,8 +347,8 @@ unverifiable payloads → discarded per §2.1.
 
 ## Reference implementation
 
-- Reference relay (Rust, `nostr-relay-builder`) and reference client (TanStack Start, `nostr-tools`):
-  <https://github.com/node21labs> (Parcel21). See [`../relay/`](../relay/) and [`../client/`](../client/).
+- Reference relay (TypeScript/Bun, Postgres) and reference client (TanStack Start, `nostr-tools`):
+  <https://github.com/node21labs/parcel21>. See [`../relay/`](../relay/) and [`../client/`](../client/).
 
 ## Acknowledgments
 
@@ -334,8 +363,10 @@ and on [NIP-17]'s private-DM pattern.
 [NIP-40]: https://github.com/nostr-protocol/nips/blob/master/40.md
 [NIP-42]: https://github.com/nostr-protocol/nips/blob/master/42.md
 [NIP-44]: https://github.com/nostr-protocol/nips/blob/master/44.md
+[NIP-46]: https://github.com/nostr-protocol/nips/blob/master/46.md
 [NIP-51]: https://github.com/nostr-protocol/nips/blob/master/51.md
 [NIP-59]: https://github.com/nostr-protocol/nips/blob/master/59.md
+[BIP-352]: https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki
 [Blossom]: https://github.com/hzrd149/blossom
 [BUD-01]: https://github.com/hzrd149/blossom/blob/master/buds/01.md
 [BUD-02]: https://github.com/hzrd149/blossom/blob/master/buds/02.md
